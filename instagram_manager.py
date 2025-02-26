@@ -21,9 +21,9 @@ class InstagramManager:
         self.accounts: Dict[str, List[int]] = {}
         self.loader = instaloader.Instaloader()
         self.last_check = {}
-        self.load_accounts()
+        asyncio.create_task(self.load_accounts())
 
-    def load_accounts(self):
+    async def load_accounts(self):
         try:
             if os.path.exists(self.accounts_file):
                 with open(self.accounts_file, 'r') as f:
