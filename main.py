@@ -72,20 +72,20 @@ async def sync_commands():
     try:
         # Obtém lista atual de comandos
         before_commands = set(cmd.name for cmd in bot.tree.get_commands())
-        
+
         # Limpa e sincroniza os comandos
         bot.tree.clear_commands(guild=None)
         bot.tree.clear_commands(guild=discord.Object(id=GUILD_ID))
         await bot.tree.sync()
         await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
-        
+
         # Obtém nova lista de comandos
         after_commands = set(cmd.name for cmd in bot.tree.get_commands())
-        
+
         # Calcula diferenças
         added = after_commands - before_commands
         removed = before_commands - after_commands
-        
+
         # Prepara mensagem de log
         log_message = "Comandos sincronizados com sucesso!\n"
         if added:
@@ -102,12 +102,11 @@ async def sync_commands():
     except Exception as e:
         print(f"Erro ao sincronizar comandos: {e}")
         channel = bot.get_channel(LOG_CHANNEL)
-        await send_embed(channel,
-                         title="**Erro na Sincronização**",
-                         description=f"Ocorreu um erro ao sincronizar os comandos: {str(e)}",
-                         color=0xFF0000)
-                     title="**Comandos Sincronizados**",
-                     description=log_message)
+        await send_embed(
+            channel,
+            title="**Erro na Sincronização**",
+            description=f"Ocorreu um erro ao sincronizar os comandos: {str(e)}",
+            color=0xFF0000)
 
 
 # On Member Update Event
@@ -133,7 +132,7 @@ async def on_member_update(before, after):
                 await send_role_change_embed(after, role_added)
         except Exception as e:
             print(f"Erro ao remover o cargo: {e}")
-            
+
 
 # Ping Command
 @bot.tree.command(name="ping",
@@ -142,22 +141,23 @@ async def on_member_update(before, after):
 async def ping(interaction):
     # Calcula a latência do WebSocket
     websocket_latency = round(bot.latency * 1000)
-    
+
     # Envia mensagem inicial
     await interaction.response.send_message("Calculando latência...")
-    
+
     # Calcula a latência da API
     start_time = interaction.created_at
     end_time = discord.utils.utcnow()
     api_latency = round((end_time - start_time).total_seconds() * 1000)
-    
+
     # Usa a função send_embed para enviar o resultado
     await send_embed(
         interaction.channel,
         title="🏓 Pong!",
-        description=f"**Gateway (WebSocket):** `{websocket_latency}ms`\n**API:** `{api_latency}ms`"
+        description=
+        f"**Gateway (WebSocket):** `{websocket_latency}ms`\n**API:** `{api_latency}ms`"
     )
-    
+
     # Remove a mensagem inicial
     await interaction.delete_original_response()
 
