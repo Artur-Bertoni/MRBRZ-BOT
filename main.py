@@ -124,19 +124,15 @@ async def on_member_update(before, after):
                 await send_role_change_embed(after, role_added)
         except Exception as e:
             print(f"Erro ao remover o cargo: {e}")
+            
 
-
-# Test Command
-@bot.tree.command(name="teste",
-                  description="Comando de teste para validar o bot",
-                  extras={"id": "teste_command"})
+# Ping Command
+@bot.tree.command(name="ping",
+                  description="Comando para Ping",
+                  extras={"id": "ping_command"})
 async def teste(interaction):
-    if interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message(
-            "Este comando é um comando de teste!")
-    else:
-        await interaction.response.send_message(
-            "Você não tem permissão para usar este comando.")
+    await interaction.response.send_message(
+        "Pong!")
 
 
 # Run Discord Bot
