@@ -1,5 +1,5 @@
 #######################
-# Imports
+# Imports e Setup Inicial
 #######################
 import os
 import discord
@@ -7,6 +7,17 @@ from discord.ext import commands
 import instaloader
 import asyncio
 from datetime import datetime
+
+# Configuração inicial do bot
+intents = discord.Intents.default()
+intents.guilds = True
+intents.guild_messages = True
+intents.message_content = True
+intents.members = True
+
+bot = commands.Bot(command_prefix="/",
+                  intents=intents,
+                  application_id=os.getenv("APPLICATION_ID"))
 
 #######################
 # Configurações e Variáveis
@@ -44,7 +55,7 @@ async def check_single_account(L, account):
     try:
         profile = instaloader.Profile.from_username(L.context, account.username)
         channel = bot.get_channel(account.channel_id)
-        
+
         # Verifica posts e reels
         for post in profile.get_posts():
             if post.date > account.last_post_date:
@@ -55,19 +66,19 @@ async def check_single_account(L, account):
                     color=0xE1306C,
                     url=f"https://instagram.com/p/{post.shortcode}"
                 )
-                
+
                 if post.is_video:
                     embed.set_image(url=post.thumbnail_url)
                     embed.add_field(name="Visualizações", value=str(post.video_view_count))
                 else:
                     embed.set_image(url=post.url)
                     embed.add_field(name="Likes", value=str(post.likes))
-                
+
                 embed.set_footer(text=post.date.strftime("%d/%m/%Y %H:%M"))
                 await channel.send(embed=embed)
                 account.last_post_date = post.date
             break
-        
+
         # Verifica stories
         for story in profile.get_stories():
             if story.date > account.last_post_date:
@@ -75,12 +86,12 @@ async def check_single_account(L, account):
                     title=f"Novo Story de @{account.username}",
                     color=0xE1306C
                 )
-                
+
                 if story.is_video:
                     embed.set_image(url=story.thumbnail_url)
                 else:
                     embed.set_image(url=story.url)
-                
+
                 embed.set_footer(text=story.date.strftime("%d/%m/%Y %H:%M"))
                 await channel.send(embed=embed)
                 account.last_post_date = story.date
@@ -95,24 +106,24 @@ async def check_instagram_posts():
         L.load_session_from_file("instagram_bot")
     except FileNotFoundError:
         pass
-    
+
     L.context.sleep = True
     L.context.quiet = False
-    
+
     while not bot.is_closed():
         for account in instagram_accounts.values():
             await check_single_account(L, account)
         await asyncio.sleep(INSTAGRAM_CHECK_INTERVAL)
-    
+
     while not bot.is_closed():
         try:
             profile = instaloader.Profile.from_username(L.context, INSTAGRAM_USERNAME)
-            
+
             # Verifica posts, reels e stories
             for post in profile.get_posts():
                 if post.date > account.last_post_date:
                     channel = bot.get_channel(account.channel_id)
-                    
+
                     post_type = "Reels" if post.is_video else "Post"
                     embed = discord.Embed(
                         title=f"Novo {post_type} de @{INSTAGRAM_USERNAME}",
@@ -120,48 +131,43 @@ async def check_instagram_posts():
                         color=0xE1306C,
                         url=f"https://instagram.com/p/{post.shortcode}"
                     )
-                    
+
                     if post.is_video:
                         embed.set_image(url=post.thumbnail_url)
                         embed.add_field(name="Visualizações", value=str(post.video_view_count))
                     else:
                         embed.set_image(url=post.url)
                         embed.add_field(name="Likes", value=str(post.likes))
-                    
+
                     embed.set_footer(text=post.date.strftime("%d/%m/%Y %H:%M"))
                     await channel.send(embed=embed)
                     account.last_post_date = post.date
                 break
-            
+
             # Verifica stories
             for story in profile.get_stories():
                 if story.date > account.last_post_date:
                     channel = bot.get_channel(account.channel_id)
-                    
+
                     embed = discord.Embed(
                         title=f"Novo Story de @{INSTAGRAM_USERNAME}",
                         color=0xE1306C
                     )
-                    
+
                     if story.is_video:
                         embed.set_image(url=story.thumbnail_url)
                     else:
                         embed.set_image(url=story.url)
-                    
+
                     embed.set_footer(text=story.date.strftime("%d/%m/%Y %H:%M"))
                     await channel.send(embed=embed)
                     account.last_post_date = story.date
                 break
-                
+
         except Exception as e:
             print(f"Erro ao verificar Instagram: {e}")
-            
+
         await asyncio.sleep(INSTAGRAM_CHECK_INTERVAL)
-intents.guilds = True
-intents.guild_messages = True
-intents.message_content = True
-
-
 #######################
 # Comandos
 #######################
@@ -183,30 +189,30 @@ async def instagram(
         if not username or not canal:
             await interaction.response.send_message("Você precisa especificar um username e um canal!", ephemeral=True)
             return
-        
+
         instagram_accounts[username] = InstagramAccount(username, canal.id)
         await interaction.response.send_message(f"Conta @{username} configurada para postar no canal {canal.mention}")
-    
+
     elif acao.lower() == "remover":
         if not username:
             await interaction.response.send_message("Você precisa especificar um username!", ephemeral=True)
             return
-        
+
         if username in instagram_accounts:
             del instagram_accounts[username]
             await interaction.response.send_message(f"Conta @{username} removida do monitoramento")
         else:
             await interaction.response.send_message(f"Conta @{username} não estava sendo monitorada", ephemeral=True)
-    
+
     elif acao.lower() == "listar":
         if not instagram_accounts:
             await interaction.response.send_message("Nenhuma conta está sendo monitorada", ephemeral=True)
             return
-        
+
         accounts_list = "\n".join([f"@{username} -> <#{account.channel_id}>" 
                                  for username, account in instagram_accounts.items()])
         await interaction.response.send_message(f"Contas monitoradas:\n{accounts_list}")
-    
+
     else:
         await interaction.response.send_message(
             "Ação inválida! Use:\n"
@@ -215,12 +221,6 @@ async def instagram(
             "`/instagram listar` - Lista todas as contas monitoradas",
             ephemeral=True
         )
-
-intents.members = True
-
-bot = commands.Bot(command_prefix="/",
-                  intents=intents,
-                  application_id=os.getenv("APPLICATION_ID"))
 
 #######################
 # Eventos
@@ -317,19 +317,19 @@ async def check_now(interaction: discord.Interaction):
         return
 
     await interaction.response.send_message("Verificando posts do Instagram...")
-    
+
     L = instaloader.Instaloader(max_connection_attempts=1)
     try:
         L.load_session_from_file("instagram_bot")
     except FileNotFoundError:
         pass
-    
+
     L.context.sleep = True
     L.context.quiet = False
-    
+
     for account in instagram_accounts.values():
         await check_single_account(L, account)
-    
+
     await interaction.edit_original_response(content="Verificação manual concluída!")
 
 #######################
