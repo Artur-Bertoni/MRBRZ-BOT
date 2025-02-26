@@ -70,21 +70,15 @@ async def send_role_change_embed(member, role_added):
 # Sync Commands Function
 async def sync_commands():
     try:
-        # Limpa todos os comandos globais e do servidor
-        bot.tree.clear_commands(guild=None)
-        bot.tree.clear_commands(guild=discord.Object(id=GUILD_ID))
+        # Limpa e sincroniza comandos do servidor
+        guild = discord.Object(id=GUILD_ID)
+        bot.tree.clear_commands(guild=guild)
         
-        # Sincroniza para aplicar a limpeza
-        await bot.tree.sync()
-        await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
-        
-        # Sincroniza novamente para registrar os comandos atuais
-        synced = await bot.tree.sync()
-        guild_synced = await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+        # Sincroniza apenas os comandos do servidor
+        commands = await bot.tree.sync(guild=guild)
         
         # Obtém lista de comandos atual
-        all_commands = synced + guild_synced
-        current_commands = [cmd.name for cmd in all_commands]
+        current_commands = [cmd.name for cmd in commands]
         
         # Prepara mensagem de log
         log_message = "Comandos sincronizados com sucesso!\n"
@@ -134,10 +128,11 @@ async def on_member_update(before, after):
 
 
 # Ping Command
-@bot.tree.command(name="ping",
-                  description="Mostra a latência do bot",
-                  extras={"id": "ping_command"})
-async def ping(interaction):
+@bot.tree.command(
+    name="ping",
+    description="Mostra a latência do bot",
+    guild=discord.Object(id=GUILD_ID))
+async def ping(interaction: discord.Interaction):
     # Calcula a latência do WebSocket
     websocket_latency = round(bot.latency * 1000)
 
