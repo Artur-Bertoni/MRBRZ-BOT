@@ -23,7 +23,7 @@ CARGO_MEMBROS_YOUTUBE = 1336425799359791174
 CARGO_CAOS_NO_MULTIVERSO = 1342108534350811206
 CARGO_TESTE = 1343947583260983338
 LOG_CHANNEL = 1341465591667753060
-INSTAGRAM_CHECK_INTERVAL = 10  # Intervalo de verificação em segundos
+INSTAGRAM_CHECK_INTERVAL = 300  # Intervalo de verificação em segundos
 
 #######################
 # Classes
@@ -40,22 +40,69 @@ intents = discord.Intents.default()
 #######################
 # Funções de Background
 #######################
+async def check_single_account(L, account):
+    try:
+        profile = instaloader.Profile.from_username(L.context, account.username)
+        channel = bot.get_channel(account.channel_id)
+        
+        # Verifica posts e reels
+        for post in profile.get_posts():
+            if post.date > account.last_post_date:
+                post_type = "Reels" if post.is_video else "Post"
+                embed = discord.Embed(
+                    title=f"Novo {post_type} de @{account.username}",
+                    description=post.caption[:4096] if post.caption else "Sem legenda",
+                    color=0xE1306C,
+                    url=f"https://instagram.com/p/{post.shortcode}"
+                )
+                
+                if post.is_video:
+                    embed.set_image(url=post.thumbnail_url)
+                    embed.add_field(name="Visualizações", value=str(post.video_view_count))
+                else:
+                    embed.set_image(url=post.url)
+                    embed.add_field(name="Likes", value=str(post.likes))
+                
+                embed.set_footer(text=post.date.strftime("%d/%m/%Y %H:%M"))
+                await channel.send(embed=embed)
+                account.last_post_date = post.date
+            break
+        
+        # Verifica stories
+        for story in profile.get_stories():
+            if story.date > account.last_post_date:
+                embed = discord.Embed(
+                    title=f"Novo Story de @{account.username}",
+                    color=0xE1306C
+                )
+                
+                if story.is_video:
+                    embed.set_image(url=story.thumbnail_url)
+                else:
+                    embed.set_image(url=story.url)
+                
+                embed.set_footer(text=story.date.strftime("%d/%m/%Y %H:%M"))
+                await channel.send(embed=embed)
+                account.last_post_date = story.date
+            break
+    except Exception as e:
+        print(f"Erro ao verificar conta {account.username}: {e}")
+
 async def check_instagram_posts():
     await bot.wait_until_ready()
     L = instaloader.Instaloader(max_connection_attempts=1)
     try:
         L.load_session_from_file("instagram_bot")
     except FileNotFoundError:
-        # Primeira vez executando, fazer login se necessário
         pass
     
-    L.context.sleep = True  # Adiciona delays entre requisições
-    L.context.quiet = False  # Mostra logs detalhados
+    L.context.sleep = True
+    L.context.quiet = False
     
     while not bot.is_closed():
         for account in instagram_accounts.values():
-            try:
-                profile = instaloader.Profile.from_username(L.context, account.username)
+            await check_single_account(L, account)
+        await asyncio.sleep(INSTAGRAM_CHECK_INTERVAL)
     
     while not bot.is_closed():
         try:
@@ -259,6 +306,31 @@ async def ping(interaction: discord.Interaction):
         description=f"**Gateway (WebSocket):** `{websocket_latency}ms`\n**API:** `{api_latency}ms`"
     )
     await interaction.delete_original_response()
+
+@bot.tree.command(
+    name="check_instagram",
+    description="Verifica manualmente os posts do Instagram",
+    guild=discord.Object(id=GUILD_ID))
+async def check_now(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("Você não tem permissão para usar este comando.", ephemeral=True)
+        return
+
+    await interaction.response.send_message("Verificando posts do Instagram...")
+    
+    L = instaloader.Instaloader(max_connection_attempts=1)
+    try:
+        L.load_session_from_file("instagram_bot")
+    except FileNotFoundError:
+        pass
+    
+    L.context.sleep = True
+    L.context.quiet = False
+    
+    for account in instagram_accounts.values():
+        await check_single_account(L, account)
+    
+    await interaction.edit_original_response(content="Verificação manual concluída!")
 
 #######################
 # Inicialização do Bot
