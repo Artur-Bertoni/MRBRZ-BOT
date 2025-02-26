@@ -3,8 +3,10 @@
 #######################
 import os
 import discord
+import asyncio
 from discord.ext import commands
 from datetime import datetime
+from instagram_manager import InstagramManager
 
 # Configuração inicial do bot
 intents = discord.Intents.default()
@@ -16,6 +18,9 @@ intents.members = True
 bot = commands.Bot(command_prefix="/",
                   intents=intents,
                   application_id=os.getenv("APPLICATION_ID"))
+
+# Configuração do Instagram Manager
+instagram_manager = None
 
 
 #######################
@@ -65,7 +70,70 @@ async def ping(interaction: discord.Interaction):
 @bot.event
 async def on_ready():
     print(f"Bot conectado como: {bot.user}")
+    global instagram_manager
+    instagram_manager = InstagramManager(bot)
+    bot.loop.create_task(check_instagram_updates())
     await sync_commands()
+
+async def check_instagram_updates():
+    while True:
+        await instagram_manager.check_all_accounts()
+        await asyncio.sleep(300)  # Verificar a cada 5 minutos
+
+@bot.tree.command(
+    name="instagram_add",
+    description="Adiciona uma conta do Instagram para monitoramento",
+    guild=discord.Object(id=GUILD_ID))
+async def instagram_add(interaction: discord.Interaction, username: str, channel: discord.TextChannel):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("Você não tem permissão para usar este comando.", ephemeral=True)
+        return
+
+    success = await instagram_manager.add_account(username, channel.id)
+    if success:
+        await interaction.response.send_message(f"Conta @{username} adicionada com sucesso para o canal {channel.mention}")
+    else:
+        await interaction.response.send_message(f"Erro ao adicionar a conta @{username}", ephemeral=True)
+
+@bot.tree.command(
+    name="instagram_remove",
+    description="Remove uma conta do Instagram do monitoramento",
+    guild=discord.Object(id=GUILD_ID))
+async def instagram_remove(interaction: discord.Interaction, username: str, channel: discord.TextChannel):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("Você não tem permissão para usar este comando.", ephemeral=True)
+        return
+
+    success = await instagram_manager.remove_account(username, channel.id)
+    if success:
+        await interaction.response.send_message(f"Conta @{username} removida com sucesso do canal {channel.mention}")
+    else:
+        await interaction.response.send_message(f"Erro ao remover a conta @{username}", ephemeral=True)
+
+@bot.tree.command(
+    name="instagram_check",
+    description="Verifica atualizações manualmente",
+    guild=discord.Object(id=GUILD_ID))
+async def instagram_check(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("Você não tem permissão para usar este comando.", ephemeral=True)
+        return
+
+    await interaction.response.send_message("Verificando atualizações...")
+    await instagram_manager.check_all_accounts()
+    await interaction.edit_original_response(content="Verificação manual concluída!")
+
+@bot.tree.command(
+    name="instagram_sync",
+    description="Sincroniza as contas do Instagram",
+    guild=discord.Object(id=GUILD_ID))
+async def instagram_sync(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("Você não tem permissão para usar este comando.", ephemeral=True)
+        return
+
+    instagram_manager.load_accounts()
+    await interaction.response.send_message("Contas do Instagram sincronizadas com sucesso!")
 
 @bot.event
 async def on_member_update(before, after):
