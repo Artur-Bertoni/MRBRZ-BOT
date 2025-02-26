@@ -69,34 +69,43 @@ async def send_role_change_embed(member, role_added):
 
 # Sync Commands Function
 async def sync_commands():
-    await bot.tree.sync()
-    added_commands = []
-    removed_commands = []
-    original_commands = bot.tree.get_commands()
-    await bot.tree.sync()
-    updated_commands = bot.tree.get_commands()
+    try:
+        # Obtém lista atual de comandos
+        before_commands = set(cmd.name for cmd in bot.tree.get_commands())
+        
+        # Limpa e sincroniza os comandos
+        bot.tree.clear_commands(guild=None)
+        bot.tree.clear_commands(guild=discord.Object(id=GUILD_ID))
+        await bot.tree.sync()
+        await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+        
+        # Obtém nova lista de comandos
+        after_commands = set(cmd.name for cmd in bot.tree.get_commands())
+        
+        # Calcula diferenças
+        added = after_commands - before_commands
+        removed = before_commands - after_commands
+        
+        # Prepara mensagem de log
+        log_message = "Comandos sincronizados com sucesso!\n"
+        if added:
+            log_message += f"Comandos adicionados: {', '.join(added)}\n"
+        if removed:
+            log_message += f"Comandos removidos: {', '.join(removed)}\n"
+        if not (added or removed):
+            log_message += "Nenhuma alteração nos comandos."
 
-    # Compare commands based on their IDs
-    for updated_command in updated_commands:
-        if updated_command.extras.get('id') not in [
-                c.extras.get('id') for c in original_commands
-        ]:
-            added_commands.append(updated_command.name)
-
-    for original_command in original_commands:
-        if original_command.extras.get('id') not in [
-                c.extras.get('id') for c in updated_commands
-        ]:
-            removed_commands.append(original_command.name)
-
-    log_message = "Comandos sincronizados com sucesso!\n"
-    if added_commands:
-        log_message += f"Comandos adicionados: {', '.join(added_commands)}\n"
-    if removed_commands:
-        log_message += f"Comandos removidos: {', '.join(removed_commands)}\n"
-
-    channel = bot.get_channel(LOG_CHANNEL)
-    await send_embed(channel,
+        channel = bot.get_channel(LOG_CHANNEL)
+        await send_embed(channel,
+                         title="**Comandos Sincronizados**",
+                         description=log_message)
+    except Exception as e:
+        print(f"Erro ao sincronizar comandos: {e}")
+        channel = bot.get_channel(LOG_CHANNEL)
+        await send_embed(channel,
+                         title="**Erro na Sincronização**",
+                         description=f"Ocorreu um erro ao sincronizar os comandos: {str(e)}",
+                         color=0xFF0000)
                      title="**Comandos Sincronizados**",
                      description=log_message)
 
@@ -128,11 +137,29 @@ async def on_member_update(before, after):
 
 # Ping Command
 @bot.tree.command(name="ping",
-                  description="Comando para Ping",
+                  description="Mostra a latência do bot",
                   extras={"id": "ping_command"})
-async def teste(interaction):
-    await interaction.response.send_message(
-        "Pong!")
+async def ping(interaction):
+    # Calcula a latência do WebSocket
+    websocket_latency = round(bot.latency * 1000)
+    
+    # Envia mensagem inicial
+    await interaction.response.send_message("Calculando latência...")
+    
+    # Calcula a latência da API
+    start_time = interaction.created_at
+    end_time = discord.utils.utcnow()
+    api_latency = round((end_time - start_time).total_seconds() * 1000)
+    
+    # Usa a função send_embed para enviar o resultado
+    await send_embed(
+        interaction.channel,
+        title="🏓 Pong!",
+        description=f"**Gateway (WebSocket):** `{websocket_latency}ms`\n**API:** `{api_latency}ms`"
+    )
+    
+    # Remove a mensagem inicial
+    await interaction.delete_original_response()
 
 
 # Run Discord Bot
