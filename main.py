@@ -24,7 +24,7 @@ bot = commands.Bot(command_prefix="/",
 
 TOKEN = os.getenv("TOKEN")
 if not TOKEN:
-    print("Error: TOKEN not found in secrets.")
+    print("Erro: TOKEN não encontrado nos secrets.")
     exit()
 
 GUILD_ID = 1336381520977596518
@@ -64,7 +64,7 @@ async def ping(interaction: discord.Interaction):
 #######################
 @bot.event
 async def on_ready():
-    print(f"Bot conectado como: {bot.user}")
+    print(f"Bot conectado com sucesso como: {bot.user}")
     await sync_commands()
 
 @bot.event
@@ -81,7 +81,7 @@ async def on_member_update(before, after):
                 await after.remove_roles(role_caos)
                 await send_role_change_embed(after, role_added)
         except Exception as e:
-            print(f"Erro ao remover o cargo: {e}")
+            print(f"Erro ao tentar remover o cargo: {e}")
 
 
 #######################
