@@ -70,17 +70,24 @@ async def send_role_change_embed(member, role_added):
 # Sync Commands Function
 async def sync_commands():
     try:
+        print("Iniciando sincronização de comandos...")
+        
         # Limpa e sincroniza comandos do servidor
         guild = discord.Object(id=GUILD_ID)
+        print(f"Limpando comandos para o servidor {GUILD_ID}...")
         bot.tree.clear_commands(guild=guild)
         
         # Sincroniza apenas os comandos do servidor
+        print("Sincronizando comandos com o Discord...")
         commands = await bot.tree.sync(guild=guild)
+        print(f"Comandos sincronizados. Retorno: {commands}")
         
         # Obtém lista de comandos atual
         current_commands = [cmd.name for cmd in commands]
+        print(f"Comandos atuais: {current_commands}")
         
         # Prepara mensagem de log
+        print("Preparando mensagem de log...")
         log_message = "Comandos sincronizados com sucesso!\n"
         if current_commands:
             log_message += f"Comandos ativos: {', '.join(current_commands)}"
