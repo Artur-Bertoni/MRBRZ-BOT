@@ -1,9 +1,16 @@
+#######################
+# Imports
+#######################
 import os
 import discord
 from discord.ext import commands
 import instaloader
 import asyncio
 from datetime import datetime
+
+#######################
+# Configurações e Variáveis
+#######################
 
 TOKEN = os.getenv("TOKEN")
 if not TOKEN:
@@ -18,6 +25,9 @@ CARGO_TESTE = 1343947583260983338
 LOG_CHANNEL = 1341465591667753060
 INSTAGRAM_CHECK_INTERVAL = 10  # Intervalo de verificação em segundos
 
+#######################
+# Classes
+#######################
 class InstagramAccount:
     def __init__(self, username, channel_id):
         self.username = username
@@ -27,6 +37,9 @@ class InstagramAccount:
 instagram_accounts = {}
 intents = discord.Intents.default()
 
+#######################
+# Funções de Background
+#######################
 async def check_instagram_posts():
     await bot.wait_until_ready()
     L = instaloader.Instaloader()
@@ -94,6 +107,9 @@ intents.guild_messages = True
 intents.message_content = True
 
 
+#######################
+# Comandos
+#######################
 @bot.tree.command(
     name="instagram",
     description="Configura uma conta do Instagram para monitoramento",
@@ -151,12 +167,18 @@ bot = commands.Bot(command_prefix="/",
                   intents=intents,
                   application_id=os.getenv("APPLICATION_ID"))
 
+#######################
+# Eventos
+#######################
 @bot.event
 async def on_ready():
     print(f"Bot conectado como: {bot.user}")
     await sync_commands()
     bot.loop.create_task(check_instagram_posts())
 
+#######################
+# Funções Utilitárias
+#######################
 async def send_embed(channel, title, description, thumbnail=None, color=0xFFF200):
     if isinstance(channel, discord.TextChannel):
         embed = discord.Embed(title=title, description=description, color=color)
@@ -230,4 +252,7 @@ async def ping(interaction: discord.Interaction):
     )
     await interaction.delete_original_response()
 
+#######################
+# Inicialização do Bot
+#######################
 bot.run(TOKEN)
