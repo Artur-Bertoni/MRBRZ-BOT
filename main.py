@@ -29,7 +29,7 @@ instagram_manager = None
 
 TOKEN = os.getenv("TOKEN")
 if not TOKEN:
-    print("Error: TOKEN not found in secrets.")
+    print("Erro: TOKEN não encontrado nas variáveis de ambiente.")
     exit()
 
 GUILD_ID = 1336381520977596518
@@ -129,7 +129,7 @@ async def instagram_sync(interaction: discord.Interaction):
 #######################
 @bot.event
 async def on_ready():
-    print(f"Bot conectado como: {bot.user}")
+    print(f"Bot conectado com sucesso como: {bot.user}")
     global instagram_manager
     instagram_manager = InstagramManager(bot)
     bot.loop.create_task(check_instagram_updates())
@@ -154,7 +154,7 @@ async def on_member_update(before, after):
                 await after.remove_roles(role_caos)
                 await send_role_change_embed(after, role_added)
         except Exception as e:
-            print(f"Erro ao remover o cargo: {e}")
+            print(f"Erro ao tentar remover o cargo: {e}")
 
 
 #######################
