@@ -70,30 +70,25 @@ async def send_role_change_embed(member, role_added):
 # Sync Commands Function
 async def sync_commands():
     try:
-        # Obtém lista atual de comandos
-        before_commands = set(cmd.name for cmd in bot.tree.get_commands())
-
-        # Limpa e sincroniza os comandos
+        # Limpa todos os comandos primeiro
         bot.tree.clear_commands(guild=None)
         bot.tree.clear_commands(guild=discord.Object(id=GUILD_ID))
         await bot.tree.sync()
         await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
 
-        # Obtém nova lista de comandos
-        after_commands = set(cmd.name for cmd in bot.tree.get_commands())
+        # Registra os comandos novamente
+        await bot.tree.sync()
+        await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
 
-        # Calcula diferenças
-        added = after_commands - before_commands
-        removed = before_commands - after_commands
+        # Obtém lista de comandos atual
+        current_commands = [cmd.name for cmd in bot.tree.get_commands()]
 
         # Prepara mensagem de log
         log_message = "Comandos sincronizados com sucesso!\n"
-        if added:
-            log_message += f"Comandos adicionados: {', '.join(added)}\n"
-        if removed:
-            log_message += f"Comandos removidos: {', '.join(removed)}\n"
-        if not (added or removed):
-            log_message += "Nenhuma alteração nos comandos."
+        if current_commands:
+            log_message += f"Comandos ativos: {', '.join(current_commands)}"
+        else:
+            log_message += "Nenhum comando ativo."
 
         channel = bot.get_channel(LOG_CHANNEL)
         await send_embed(channel,
