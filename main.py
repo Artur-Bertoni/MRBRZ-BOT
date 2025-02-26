@@ -42,7 +42,15 @@ intents = discord.Intents.default()
 #######################
 async def check_instagram_posts():
     await bot.wait_until_ready()
-    L = instaloader.Instaloader()
+    L = instaloader.Instaloader(max_connection_attempts=1)
+    try:
+        L.load_session_from_file("instagram_bot")
+    except FileNotFoundError:
+        # Primeira vez executando, fazer login se necessário
+        pass
+    
+    L.context.sleep = True  # Adiciona delays entre requisições
+    L.context.quiet = False  # Mostra logs detalhados
     
     while not bot.is_closed():
         for account in instagram_accounts.values():
