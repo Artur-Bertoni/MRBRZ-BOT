@@ -72,13 +72,15 @@ async def sync_commands():
     try:
         print("Iniciando sincronização de comandos...")
         
-        # Limpa e sincroniza comandos do servidor
+        # Configura o servidor
         guild = discord.Object(id=GUILD_ID)
-        print(f"Limpando comandos para o servidor {GUILD_ID}...")
-        bot.tree.clear_commands(guild=guild)
         
-        # Sincroniza apenas os comandos do servidor
+        # Copia os comandos atuais antes de limpar
+        print("Copiando comandos existentes...")
+        bot.tree.copy_global_to(guild=guild)
+        
         print("Sincronizando comandos com o Discord...")
+        # Sincroniza os comandos
         commands = await bot.tree.sync(guild=guild)
         print(f"Comandos sincronizados. Retorno: {commands}")
         
