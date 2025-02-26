@@ -6,6 +6,14 @@ import asyncio
 import discord
 from typing import Dict, List, Optional
 
+async def log_error(bot, error_msg: str):
+    """Função auxiliar para logar erros"""
+    print(error_msg)
+    channel = bot.get_channel(1341465591667753060)  # LOG_CHANNEL
+    if channel:
+        embed = discord.Embed(title="Erro", description=error_msg, color=0xFF0000)
+        await channel.send(embed=embed)
+
 class InstagramManager:
     def __init__(self, bot):
         self.bot = bot
@@ -24,8 +32,7 @@ class InstagramManager:
                         self.last_check[username] = datetime.now() - timedelta(hours=24)
         except Exception as e:
             error_msg = f"Erro ao carregar contas: {e}"
-            print(error_msg)
-            await send_embed(title="Erro", description=error_msg, color=0xFF0000)
+            await log_error(self.bot, error_msg)
             self.accounts = {}
 
     def save_accounts(self):
@@ -34,8 +41,7 @@ class InstagramManager:
                 json.dump(self.accounts, f)
         except Exception as e:
             error_msg = f"Erro ao salvar contas: {e}"
-            print(error_msg)
-            await send_embed(title="Erro", description=error_msg, color=0xFF0000)
+            await log_error(self.bot, error_msg)
 
     async def add_account(self, username: str, channel_id: int) -> bool:
         try:
