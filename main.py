@@ -53,7 +53,17 @@ intents = discord.Intents.default()
 #######################
 async def check_single_account(L, account):
     try:
-        profile = instaloader.Profile.from_username(L.context, account.username)
+        await asyncio.sleep(2)  # Delay entre requisições
+        try:
+            profile = instaloader.Profile.from_username(L.context, account.username)
+        except instaloader.exceptions.InstaloaderException as e:
+            if "429" in str(e) or "401" in str(e):
+                print(f"Rate limit atingido para {account.username}, aguardando 5 minutos...")
+                await asyncio.sleep(300)  # Espera 5 minutos
+                profile = instaloader.Profile.from_username(L.context, account.username)
+            else:
+                raise e
+        
         channel = bot.get_channel(account.channel_id)
 
         # Verifica posts e reels
@@ -251,9 +261,17 @@ async def check_now(interaction: discord.Interaction):
         await interaction.response.send_message("Você não tem permissão para usar este comando.", ephemeral=True)
         return
 
-    await interaction.response.send_message("Verificando posts do Instagram...")
+    await interaction.response.send_message("Verificando posts do Instagram... (pode demorar alguns minutos)")
 
-    L = instaloader.Instaloader(max_connection_attempts=1)
+    L = instaloader.Instaloader(
+        max_connection_attempts=3,
+        download_pictures=False,
+        download_videos=False,
+        download_video_thumbnails=False,
+        download_geotags=False,
+        download_comments=False,
+        save_metadata=False
+    )
     try:
         L.load_session_from_file("instagram_bot")
     except FileNotFoundError:
