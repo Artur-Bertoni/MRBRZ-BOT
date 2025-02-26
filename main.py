@@ -70,30 +70,34 @@ async def send_role_change_embed(member, role_added):
 # Sync Commands Function
 async def sync_commands():
     try:
-        # Limpa todos os comandos primeiro
+        # Limpa todos os comandos globais e do servidor
         bot.tree.clear_commands(guild=None)
         bot.tree.clear_commands(guild=discord.Object(id=GUILD_ID))
+        
+        # Sincroniza para aplicar a limpeza
         await bot.tree.sync()
         await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
-
-        # Registra os comandos novamente
-        await bot.tree.sync()
-        await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
-
+        
+        # Sincroniza novamente para registrar os comandos atuais
+        synced = await bot.tree.sync()
+        guild_synced = await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+        
         # Obtém lista de comandos atual
-        current_commands = [cmd.name for cmd in bot.tree.get_commands()]
-
+        all_commands = synced + guild_synced
+        current_commands = [cmd.name for cmd in all_commands]
+        
         # Prepara mensagem de log
         log_message = "Comandos sincronizados com sucesso!\n"
         if current_commands:
             log_message += f"Comandos ativos: {', '.join(current_commands)}"
         else:
-            log_message += "Nenhum comando ativo."
+            log_message += "Nenhum comando ativo no momento."
 
         channel = bot.get_channel(LOG_CHANNEL)
         await send_embed(channel,
                          title="**Comandos Sincronizados**",
                          description=log_message)
+                         
     except Exception as e:
         print(f"Erro ao sincronizar comandos: {e}")
         channel = bot.get_channel(LOG_CHANNEL)
