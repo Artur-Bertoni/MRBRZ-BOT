@@ -17,6 +17,7 @@ bot = commands.Bot(command_prefix="/",
                   intents=intents,
                   application_id=os.getenv("APPLICATION_ID"))
 
+
 #######################
 # Configurações e Variáveis
 #######################
@@ -58,7 +59,6 @@ async def ping(interaction: discord.Interaction):
     await interaction.delete_original_response()
 
 
-
 #######################
 # Eventos
 #######################
@@ -82,6 +82,7 @@ async def on_member_update(before, after):
                 await send_role_change_embed(after, role_added)
         except Exception as e:
             print(f"Erro ao remover o cargo: {e}")
+
 
 #######################
 # Funções Utilitárias
@@ -122,6 +123,7 @@ async def sync_commands():
             title="**Erro na Sincronização**",
             description=f"Ocorreu um erro ao sincronizar os comandos: {str(e)}",
             color=0xFF0000)
+
 
 #######################
 # Inicialização do Bot
