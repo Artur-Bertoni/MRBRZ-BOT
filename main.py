@@ -16,16 +16,25 @@ CARGO_MEMBROS_YOUTUBE = 1336425799359791174
 CARGO_CAOS_NO_MULTIVERSO = 1342108534350811206
 CARGO_TESTE = 1343947583260983338
 LOG_CHANNEL = 1341465591667753060
-INSTAGRAM_CHANNEL = 1344364447187210311  # Altere para o ID do canal desejado
-INSTAGRAM_USERNAME = "bertoni_tui"  # Altere para o usuário que deseja monitorar
 INSTAGRAM_CHECK_INTERVAL = 10  # Intervalo de verificação em segundos
 
+class InstagramAccount:
+    def __init__(self, username, channel_id):
+        self.username = username
+        self.channel_id = channel_id
+        self.last_post_date = datetime.now()
+
+instagram_accounts = {}
 intents = discord.Intents.default()
 
 async def check_instagram_posts():
     await bot.wait_until_ready()
     L = instaloader.Instaloader()
-    last_post_date = datetime.now()
+    
+    while not bot.is_closed():
+        for account in instagram_accounts.values():
+            try:
+                profile = instaloader.Profile.from_username(L.context, account.username)
     
     while not bot.is_closed():
         try:
@@ -33,8 +42,8 @@ async def check_instagram_posts():
             
             # Verifica posts, reels e stories
             for post in profile.get_posts():
-                if post.date > last_post_date:
-                    channel = bot.get_channel(INSTAGRAM_CHANNEL)
+                if post.date > account.last_post_date:
+                    channel = bot.get_channel(account.channel_id)
                     
                     post_type = "Reels" if post.is_video else "Post"
                     embed = discord.Embed(
@@ -53,13 +62,13 @@ async def check_instagram_posts():
                     
                     embed.set_footer(text=post.date.strftime("%d/%m/%Y %H:%M"))
                     await channel.send(embed=embed)
-                    last_post_date = post.date
+                    account.last_post_date = post.date
                 break
             
             # Verifica stories
             for story in profile.get_stories():
-                if story.date > last_post_date:
-                    channel = bot.get_channel(INSTAGRAM_CHANNEL)
+                if story.date > account.last_post_date:
+                    channel = bot.get_channel(account.channel_id)
                     
                     embed = discord.Embed(
                         title=f"Novo Story de @{INSTAGRAM_USERNAME}",
@@ -73,7 +82,7 @@ async def check_instagram_posts():
                     
                     embed.set_footer(text=story.date.strftime("%d/%m/%Y %H:%M"))
                     await channel.send(embed=embed)
-                    last_post_date = story.date
+                    account.last_post_date = story.date
                 break
                 
         except Exception as e:
@@ -83,6 +92,59 @@ async def check_instagram_posts():
 intents.guilds = True
 intents.guild_messages = True
 intents.message_content = True
+
+
+@bot.tree.command(
+    name="instagram",
+    description="Configura uma conta do Instagram para monitoramento",
+    guild=discord.Object(id=GUILD_ID))
+async def instagram(
+    interaction: discord.Interaction,
+    acao: str,
+    username: str = None,
+    canal: discord.TextChannel = None
+):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("Você não tem permissão para usar este comando.", ephemeral=True)
+        return
+
+    if acao.lower() == "adicionar":
+        if not username or not canal:
+            await interaction.response.send_message("Você precisa especificar um username e um canal!", ephemeral=True)
+            return
+        
+        instagram_accounts[username] = InstagramAccount(username, canal.id)
+        await interaction.response.send_message(f"Conta @{username} configurada para postar no canal {canal.mention}")
+    
+    elif acao.lower() == "remover":
+        if not username:
+            await interaction.response.send_message("Você precisa especificar um username!", ephemeral=True)
+            return
+        
+        if username in instagram_accounts:
+            del instagram_accounts[username]
+            await interaction.response.send_message(f"Conta @{username} removida do monitoramento")
+        else:
+            await interaction.response.send_message(f"Conta @{username} não estava sendo monitorada", ephemeral=True)
+    
+    elif acao.lower() == "listar":
+        if not instagram_accounts:
+            await interaction.response.send_message("Nenhuma conta está sendo monitorada", ephemeral=True)
+            return
+        
+        accounts_list = "\n".join([f"@{username} -> <#{account.channel_id}>" 
+                                 for username, account in instagram_accounts.items()])
+        await interaction.response.send_message(f"Contas monitoradas:\n{accounts_list}")
+    
+    else:
+        await interaction.response.send_message(
+            "Ação inválida! Use:\n"
+            "`/instagram adicionar [username] [#canal]` - Adiciona uma conta para monitorar\n"
+            "`/instagram remover [username]` - Remove uma conta do monitoramento\n"
+            "`/instagram listar` - Lista todas as contas monitoradas",
+            ephemeral=True
+        )
+
 intents.members = True
 
 bot = commands.Bot(command_prefix="/",
