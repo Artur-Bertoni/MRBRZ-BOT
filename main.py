@@ -109,7 +109,7 @@ async def sync_commands():
         bot.tree.copy_global_to(guild=guild)
         commands = await bot.tree.sync(guild=guild)
 
-        current_commands = [cmd.name for cmd in commands]
+        current_commands = [f"`{cmd.name}`" for cmd in commands]
         log_message = "Comandos sincronizados com sucesso!\n"
         log_message += f"Comandos ativos: {', '.join(current_commands)}" if current_commands else "Nenhum comando ativo no momento."
 
