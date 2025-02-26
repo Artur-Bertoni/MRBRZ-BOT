@@ -1,6 +1,9 @@
 import os
 import discord
 from discord.ext import commands
+import instaloader
+import asyncio
+from datetime import datetime
 
 TOKEN = os.getenv("TOKEN")
 if not TOKEN:
@@ -13,8 +16,45 @@ CARGO_MEMBROS_YOUTUBE = 1336425799359791174
 CARGO_CAOS_NO_MULTIVERSO = 1342108534350811206
 CARGO_TESTE = 1343947583260983338
 LOG_CHANNEL = 1341465591667753060
+INSTAGRAM_CHANNEL = 1341465591667753060  # Altere para o ID do canal desejado
+INSTAGRAM_USERNAME = "seu_usuario"  # Altere para o usuário que deseja monitorar
+INSTAGRAM_CHECK_INTERVAL = 300  # Intervalo de verificação em segundos (5 minutos)
 
 intents = discord.Intents.default()
+
+async def check_instagram_posts():
+    await bot.wait_until_ready()
+    L = instaloader.Instaloader()
+    last_post_date = datetime.now()
+    
+    while not bot.is_closed():
+        try:
+            profile = instaloader.Profile.from_username(L.context, INSTAGRAM_USERNAME)
+            posts = profile.get_posts()
+            
+            for post in posts:
+                if post.date > last_post_date:
+                    channel = bot.get_channel(INSTAGRAM_CHANNEL)
+                    
+                    embed = discord.Embed(
+                        title=f"Nova Publicação de @{INSTAGRAM_USERNAME}",
+                        description=post.caption[:4096] if post.caption else "Sem legenda",
+                        color=0xE1306C,
+                        url=f"https://instagram.com/p/{post.shortcode}"
+                    )
+                    
+                    embed.set_image(url=post.url)
+                    embed.add_field(name="Likes", value=str(post.likes))
+                    embed.set_footer(text=post.date.strftime("%d/%m/%Y %H:%M"))
+                    
+                    await channel.send(embed=embed)
+                    last_post_date = post.date
+                break  # Pegamos apenas o post mais recente
+                
+        except Exception as e:
+            print(f"Erro ao verificar Instagram: {e}")
+            
+        await asyncio.sleep(INSTAGRAM_CHECK_INTERVAL)
 intents.guilds = True
 intents.guild_messages = True
 intents.message_content = True
@@ -28,6 +68,7 @@ bot = commands.Bot(command_prefix="/",
 async def on_ready():
     print(f"Bot conectado como: {bot.user}")
     await sync_commands()
+    bot.loop.create_task(check_instagram_posts())
 
 async def send_embed(channel, title, description, thumbnail=None, color=0xFFF200):
     if isinstance(channel, discord.TextChannel):
