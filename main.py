@@ -129,7 +129,9 @@ async def instagram_sync(interaction: discord.Interaction):
 #######################
 @bot.event
 async def on_ready():
-    print(f"Bot conectado com sucesso como: {bot.user}")
+    success_msg = f"Bot conectado com sucesso como: {bot.user}"
+    print(success_msg)
+    await send_embed(title="Bot Conectado", description=success_msg, color=0x00FF00)
     global instagram_manager
     instagram_manager = InstagramManager(bot)
     bot.loop.create_task(check_instagram_updates())
@@ -154,14 +156,18 @@ async def on_member_update(before, after):
                 await after.remove_roles(role_caos)
                 await send_role_change_embed(after, role_added)
         except Exception as e:
-            print(f"Erro ao tentar remover o cargo: {e}")
+            error_msg = f"Erro ao tentar remover o cargo: {e}"
+    print(error_msg)
+    await send_embed(title="Erro", description=error_msg, color=0xFF0000)
 
 
 #######################
 # Funções Utilitárias
 #######################
-async def send_embed(channel, title, description, thumbnail=None, color=0xFFF200):
-    if isinstance(channel, discord.TextChannel):
+async def send_embed(channel=None, title=None, description=None, thumbnail=None, color=0xFFF200):
+    if channel is None:
+        channel = bot.get_channel(LOG_CHANNEL)
+    if isinstance(channel, (discord.TextChannel, discord.abc.Messageable)):
         embed = discord.Embed(title=title, description=description, color=color)
         if thumbnail:
             embed.set_thumbnail(url=thumbnail)

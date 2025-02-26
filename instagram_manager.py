@@ -23,7 +23,9 @@ class InstagramManager:
                     for username in self.accounts:
                         self.last_check[username] = datetime.now() - timedelta(hours=24)
         except Exception as e:
-            print(f"Erro ao carregar contas: {e}")
+            error_msg = f"Erro ao carregar contas: {e}"
+            print(error_msg)
+            await send_embed(title="Erro", description=error_msg, color=0xFF0000)
             self.accounts = {}
 
     def save_accounts(self):
@@ -31,7 +33,9 @@ class InstagramManager:
             with open(self.accounts_file, 'w') as f:
                 json.dump(self.accounts, f)
         except Exception as e:
-            print(f"Erro ao salvar contas: {e}")
+            error_msg = f"Erro ao salvar contas: {e}"
+            print(error_msg)
+            await send_embed(title="Erro", description=error_msg, color=0xFF0000)
 
     async def add_account(self, username: str, channel_id: int) -> bool:
         try:
@@ -44,7 +48,9 @@ class InstagramManager:
             self.save_accounts()
             return True
         except Exception as e:
-            print(f"Erro ao adicionar conta: {e}")
+            error_msg = f"Erro ao adicionar conta: {e}"
+            print(error_msg)
+            await send_embed(title="Erro", description=error_msg, color=0xFF0000)
             return False
 
     async def remove_account(self, username: str, channel_id: int) -> bool:
@@ -58,7 +64,9 @@ class InstagramManager:
                     return True
             return False
         except Exception as e:
-            print(f"Erro ao remover conta: {e}")
+            error_msg = f"Erro ao remover conta: {e}"
+            print(error_msg)
+            await send_embed(title="Erro", description=error_msg, color=0xFF0000)
             return False
 
     async def check_updates(self, username: str) -> List[dict]:
@@ -91,7 +99,9 @@ class InstagramManager:
             self.last_check[username] = datetime.now()
             return updates
         except Exception as e:
-            print(f"Erro ao verificar atualizações para {username}: {e}")
+            error_msg = f"Erro ao verificar atualizações para {username}: {e}"
+            print(error_msg)
+            await send_embed(title="Erro", description=error_msg, color=0xFF0000)
             return []
 
     async def send_update(self, channel_id: int, username: str, update: dict):
@@ -108,7 +118,9 @@ class InstagramManager:
                 embed.set_footer(text=f"Instagram {update['type']}")
                 await channel.send(embed=embed)
         except Exception as e:
-            print(f"Erro ao enviar atualização: {e}")
+            error_msg = f"Erro ao enviar atualização: {e}"
+            print(error_msg)
+            await send_embed(title="Erro", description=error_msg, color=0xFF0000)
 
     async def check_all_accounts(self):
         for username, channels in self.accounts.items():
