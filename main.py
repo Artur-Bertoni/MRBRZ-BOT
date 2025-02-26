@@ -16,9 +16,9 @@ CARGO_MEMBROS_YOUTUBE = 1336425799359791174
 CARGO_CAOS_NO_MULTIVERSO = 1342108534350811206
 CARGO_TESTE = 1343947583260983338
 LOG_CHANNEL = 1341465591667753060
-INSTAGRAM_CHANNEL = 1341465591667753060  # Altere para o ID do canal desejado
-INSTAGRAM_USERNAME = "seu_usuario"  # Altere para o usuário que deseja monitorar
-INSTAGRAM_CHECK_INTERVAL = 300  # Intervalo de verificação em segundos (5 minutos)
+INSTAGRAM_CHANNEL = 1344364447187210311  # Altere para o ID do canal desejado
+INSTAGRAM_USERNAME = "bertoni_tui"  # Altere para o usuário que deseja monitorar
+INSTAGRAM_CHECK_INTERVAL = 10  # Intervalo de verificação em segundos
 
 intents = discord.Intents.default()
 
