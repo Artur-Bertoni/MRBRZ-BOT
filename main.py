@@ -171,7 +171,7 @@ def send_embed(channel=None, title=None, description=None, thumbnail=None, color
         embed = discord.Embed(title=title, description=description, color=color)
         if thumbnail:
             embed.set_thumbnail(url=thumbnail)
-        await channel.send(embed=embed)
+        channel.send(embed=embed)
 
 async def send_role_change_embed(member, role_added):
     channel = bot.get_channel(LOG_CHANNEL)
