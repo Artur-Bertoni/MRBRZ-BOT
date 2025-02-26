@@ -40,10 +40,24 @@ INSTAGRAM_CHECK_INTERVAL = 300  # Intervalo de verificação em segundos
 # Classes
 #######################
 class InstagramAccount:
-    def __init__(self, username, channel_id):
+    def __init__(self, username, channel_id, password):
         self.username = username
         self.channel_id = channel_id
+        self.password = password
         self.last_post_date = datetime.now()
+        self.insta = None
+
+    async def login(self):
+        self.insta = instaloader.Instaloader(max_connection_attempts=1)
+        try:
+            self.insta.login(self.username, self.password)
+            self.insta.context.sleep = True
+            self.insta.context.quiet = False
+            return True
+        except instaloader.exceptions.InstaloaderException as e:
+            print(f"Erro ao logar na conta {self.username}: {e}")
+            return False
+
 
 instagram_accounts = {}
 intents = discord.Intents.default()
@@ -51,19 +65,22 @@ intents = discord.Intents.default()
 #######################
 # Funções de Background
 #######################
-async def check_single_account(L, account):
+async def check_single_account(account):
     try:
-        await asyncio.sleep(2)  # Delay entre requisições
+        await asyncio.sleep(5)  # Delay entre requisições
+        if not account.insta:
+            if not await account.login():
+                return
         try:
-            profile = instaloader.Profile.from_username(L.context, account.username)
+            profile = instaloader.Profile.from_username(account.insta.context, account.username)
         except instaloader.exceptions.InstaloaderException as e:
             if "429" in str(e) or "401" in str(e):
                 print(f"Rate limit atingido para {account.username}, aguardando 5 minutos...")
                 await asyncio.sleep(300)  # Espera 5 minutos
-                profile = instaloader.Profile.from_username(L.context, account.username)
+                profile = instaloader.Profile.from_username(account.insta.context, account.username)
             else:
                 raise e
-        
+
         channel = bot.get_channel(account.channel_id)
 
         # Verifica posts e reels
@@ -111,73 +128,12 @@ async def check_single_account(L, account):
 
 async def check_instagram_posts():
     await bot.wait_until_ready()
-    L = instaloader.Instaloader(max_connection_attempts=1)
-    try:
-        L.load_session_from_file("instagram_bot")
-    except FileNotFoundError:
-        pass
-
-    L.context.sleep = True
-    L.context.quiet = False
-
     while not bot.is_closed():
         for account in instagram_accounts.values():
-            await check_single_account(L, account)
+            await check_single_account(account)
         await asyncio.sleep(INSTAGRAM_CHECK_INTERVAL)
 
-    while not bot.is_closed():
-        try:
-            profile = instaloader.Profile.from_username(L.context, INSTAGRAM_USERNAME)
 
-            # Verifica posts, reels e stories
-            for post in profile.get_posts():
-                if post.date > account.last_post_date:
-                    channel = bot.get_channel(account.channel_id)
-
-                    post_type = "Reels" if post.is_video else "Post"
-                    embed = discord.Embed(
-                        title=f"Novo {post_type} de @{INSTAGRAM_USERNAME}",
-                        description=post.caption[:4096] if post.caption else "Sem legenda",
-                        color=0xE1306C,
-                        url=f"https://instagram.com/p/{post.shortcode}"
-                    )
-
-                    if post.is_video:
-                        embed.set_image(url=post.thumbnail_url)
-                        embed.add_field(name="Visualizações", value=str(post.video_view_count))
-                    else:
-                        embed.set_image(url=post.url)
-                        embed.add_field(name="Likes", value=str(post.likes))
-
-                    embed.set_footer(text=post.date.strftime("%d/%m/%Y %H:%M"))
-                    await channel.send(embed=embed)
-                    account.last_post_date = post.date
-                break
-
-            # Verifica stories
-            for story in profile.get_stories():
-                if story.date > account.last_post_date:
-                    channel = bot.get_channel(account.channel_id)
-
-                    embed = discord.Embed(
-                        title=f"Novo Story de @{INSTAGRAM_USERNAME}",
-                        color=0xE1306C
-                    )
-
-                    if story.is_video:
-                        embed.set_image(url=story.thumbnail_url)
-                    else:
-                        embed.set_image(url=story.url)
-
-                    embed.set_footer(text=story.date.strftime("%d/%m/%Y %H:%M"))
-                    await channel.send(embed=embed)
-                    account.last_post_date = story.date
-                break
-
-        except Exception as e:
-            print(f"Erro ao verificar Instagram: {e}")
-
-        await asyncio.sleep(INSTAGRAM_CHECK_INTERVAL)
 #######################
 # Comandos
 #######################
@@ -189,18 +145,19 @@ async def instagram(
     interaction: discord.Interaction,
     acao: str,
     username: str = None,
-    canal: discord.TextChannel = None
+    canal: discord.TextChannel = None,
+    senha: str = None
 ):
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("Você não tem permissão para usar este comando.", ephemeral=True)
         return
 
     if acao.lower() == "adicionar":
-        if not username or not canal:
-            await interaction.response.send_message("Você precisa especificar um username e um canal!", ephemeral=True)
+        if not username or not canal or not senha:
+            await interaction.response.send_message("Você precisa especificar um username, um canal e uma senha!", ephemeral=True)
             return
 
-        instagram_accounts[username] = InstagramAccount(username, canal.id)
+        instagram_accounts[username] = InstagramAccount(username, canal.id, senha)
         await interaction.response.send_message(f"Conta @{username} configurada para postar no canal {canal.mention}")
 
     elif acao.lower() == "remover":
@@ -219,14 +176,14 @@ async def instagram(
             await interaction.response.send_message("Nenhuma conta está sendo monitorada", ephemeral=True)
             return
 
-        accounts_list = "\n".join([f"@{username} -> <#{account.channel_id}>" 
+        accounts_list = "\n".join([f"@{username} -> <#{account.channel_id}>"
                                  for username, account in instagram_accounts.items()])
         await interaction.response.send_message(f"Contas monitoradas:\n{accounts_list}")
 
     else:
         await interaction.response.send_message(
             "Ação inválida! Use:\n"
-            "`/instagram adicionar [username] [#canal]` - Adiciona uma conta para monitorar\n"
+            "`/instagram adicionar [username] [#canal] [senha]` - Adiciona uma conta para monitorar\n"
             "`/instagram remover [username]` - Remove uma conta do monitoramento\n"
             "`/instagram listar` - Lista todas as contas monitoradas",
             ephemeral=True
@@ -263,25 +220,8 @@ async def check_now(interaction: discord.Interaction):
 
     await interaction.response.send_message("Verificando posts do Instagram... (pode demorar alguns minutos)")
 
-    L = instaloader.Instaloader(
-        max_connection_attempts=3,
-        download_pictures=False,
-        download_videos=False,
-        download_video_thumbnails=False,
-        download_geotags=False,
-        download_comments=False,
-        save_metadata=False
-    )
-    try:
-        L.load_session_from_file("instagram_bot")
-    except FileNotFoundError:
-        pass
-
-    L.context.sleep = True
-    L.context.quiet = False
-
     for account in instagram_accounts.values():
-        await check_single_account(L, account)
+        await check_single_account(account)
 
     await interaction.edit_original_response(content="Verificação manual concluída!")
 
@@ -309,7 +249,7 @@ async def on_member_update(before, after):
                 await send_role_change_embed(after, role_added)
         except Exception as e:
             print(f"Erro ao remover o cargo: {e}")
-            
+
 #######################
 # Funções Utilitárias
 #######################
