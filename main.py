@@ -58,7 +58,7 @@ async def ping(interaction: discord.Interaction):
     await interaction.response.send_message("Calculando latência...")
     api_latency = round((discord.utils.utcnow() - interaction.created_at).total_seconds() * 1000)
 
-    await send_embed(
+    send_embed(
         interaction.channel,
         title="🏓 Pong!",
         description=f"**Gateway (WebSocket):** `{websocket_latency}ms`\n**API:** `{api_latency}ms`"
@@ -131,7 +131,7 @@ async def instagram_sync(interaction: discord.Interaction):
 async def on_ready():
     success_msg = f"Bot conectado com sucesso como: {bot.user}"
     print(success_msg)
-    await send_embed(title="Bot Conectado", description=success_msg, color=0x00FF00)
+    send_embed(title="Bot Conectado", description=success_msg, color=0x00FF00)
     global instagram_manager
     instagram_manager = InstagramManager(bot)
     bot.loop.create_task(check_instagram_updates())
@@ -158,13 +158,13 @@ async def on_member_update(before, after):
         except Exception as e:
             error_msg = f"Erro ao tentar remover o cargo: {e}"
     print(error_msg)
-    await send_embed(title="Erro", description=error_msg, color=0xFF0000)
+    send_embed(title="Erro", description=error_msg, color=0xFF0000)
 
 
 #######################
 # Funções Utilitárias
 #######################
-async def send_embed(channel=None, title=None, description=None, thumbnail=None, color=0xFFF200):
+def send_embed(channel=None, title=None, description=None, thumbnail=None, color=0xFFF200):
     if channel is None:
         channel = bot.get_channel(LOG_CHANNEL)
     if isinstance(channel, (discord.TextChannel, discord.abc.Messageable)):
@@ -175,7 +175,7 @@ async def send_embed(channel=None, title=None, description=None, thumbnail=None,
 
 async def send_role_change_embed(member, role_added):
     channel = bot.get_channel(LOG_CHANNEL)
-    await send_embed(
+    send_embed(
         channel,
         title=f"**Cargo alterado para {member.display_name}**",
         description=f"Cargo <@&{CARGO_CAOS_NO_MULTIVERSO}> removido do(a) usuário(a) {member.mention} após receber o cargo <@&{role_added.id}>",
@@ -192,12 +192,12 @@ async def sync_commands():
         log_message = "Comandos sincronizados com sucesso!\n"
         log_message += f"Comandos ativos: {', '.join(current_commands)}" if current_commands else "Nenhum comando ativo no momento."
 
-        await send_embed(bot.get_channel(LOG_CHANNEL),
+        send_embed(bot.get_channel(LOG_CHANNEL),
                         title="**Comandos Sincronizados**",
                         description=log_message)
 
     except Exception as e:
-        await send_embed(
+        send_embed(
             bot.get_channel(LOG_CHANNEL),
             title="**Erro na Sincronização**",
             description=f"Ocorreu um erro ao sincronizar os comandos: {str(e)}",
