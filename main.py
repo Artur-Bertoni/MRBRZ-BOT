@@ -30,26 +30,51 @@ async def check_instagram_posts():
     while not bot.is_closed():
         try:
             profile = instaloader.Profile.from_username(L.context, INSTAGRAM_USERNAME)
-            posts = profile.get_posts()
             
-            for post in posts:
+            # Verifica posts, reels e stories
+            for post in profile.get_posts():
                 if post.date > last_post_date:
                     channel = bot.get_channel(INSTAGRAM_CHANNEL)
                     
+                    post_type = "Reels" if post.is_video else "Post"
                     embed = discord.Embed(
-                        title=f"Nova Publicação de @{INSTAGRAM_USERNAME}",
+                        title=f"Novo {post_type} de @{INSTAGRAM_USERNAME}",
                         description=post.caption[:4096] if post.caption else "Sem legenda",
                         color=0xE1306C,
                         url=f"https://instagram.com/p/{post.shortcode}"
                     )
                     
-                    embed.set_image(url=post.url)
-                    embed.add_field(name="Likes", value=str(post.likes))
-                    embed.set_footer(text=post.date.strftime("%d/%m/%Y %H:%M"))
+                    if post.is_video:
+                        embed.set_image(url=post.thumbnail_url)
+                        embed.add_field(name="Visualizações", value=str(post.video_view_count))
+                    else:
+                        embed.set_image(url=post.url)
+                        embed.add_field(name="Likes", value=str(post.likes))
                     
+                    embed.set_footer(text=post.date.strftime("%d/%m/%Y %H:%M"))
                     await channel.send(embed=embed)
                     last_post_date = post.date
-                break  # Pegamos apenas o post mais recente
+                break
+            
+            # Verifica stories
+            for story in profile.get_stories():
+                if story.date > last_post_date:
+                    channel = bot.get_channel(INSTAGRAM_CHANNEL)
+                    
+                    embed = discord.Embed(
+                        title=f"Novo Story de @{INSTAGRAM_USERNAME}",
+                        color=0xE1306C
+                    )
+                    
+                    if story.is_video:
+                        embed.set_image(url=story.thumbnail_url)
+                    else:
+                        embed.set_image(url=story.url)
+                    
+                    embed.set_footer(text=story.date.strftime("%d/%m/%Y %H:%M"))
+                    await channel.send(embed=embed)
+                    last_post_date = story.date
+                break
                 
         except Exception as e:
             print(f"Erro ao verificar Instagram: {e}")
