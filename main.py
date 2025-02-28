@@ -2,9 +2,9 @@
 # Imports e Setup Inicial
 #######################
 import os
+
 import discord
 from discord.ext import commands
-from datetime import datetime
 
 # Configuração inicial do bot
 intents = discord.Intents.default()
@@ -14,9 +14,8 @@ intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="/",
-                  intents=intents,
-                  application_id=os.getenv("APPLICATION_ID"))
-
+                   intents=intents,
+                   application_id=os.getenv("APPLICATION_ID"))
 
 #######################
 # Configurações e Variáveis
@@ -67,6 +66,7 @@ async def on_ready():
     print(f"Bot conectado com sucesso como: {bot.user}")
     await sync_commands()
 
+
 @bot.event
 async def on_member_update(before, after):
     if before.guild.id != GUILD_ID:
@@ -94,6 +94,7 @@ async def send_embed(channel, title, description, thumbnail=None, color=0xFFF200
             embed.set_thumbnail(url=thumbnail)
         await channel.send(embed=embed)
 
+
 async def send_role_change_embed(member, role_added):
     channel = bot.get_channel(LOG_CHANNEL)
     await send_embed(
@@ -102,6 +103,7 @@ async def send_role_change_embed(member, role_added):
         description=f"Cargo <@&{CARGO_CAOS_NO_MULTIVERSO}> removido do(a) usuário(a) {member.mention} após receber o cargo <@&{role_added.id}>",
         thumbnail=member.avatar.url,
     )
+
 
 async def sync_commands():
     try:
@@ -114,8 +116,8 @@ async def sync_commands():
         log_message += f"Comandos ativos: {', '.join(current_commands)}" if current_commands else "Nenhum comando ativo no momento."
 
         await send_embed(bot.get_channel(LOG_CHANNEL),
-                        title="**Comandos Sincronizados**",
-                        description=log_message)
+                         title="**Comandos Sincronizados**",
+                         description=log_message)
 
     except Exception as e:
         await send_embed(
