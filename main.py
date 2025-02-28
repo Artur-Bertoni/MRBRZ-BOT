@@ -72,7 +72,7 @@ async def on_member_update(before, after):
     if before.guild.id != GUILD_ID:
         return
 
-    monitored_roles = [CARGO_SUBS_TWITCH, CARGO_MEMBROS_YOUTUBE, CARGO_TESTE]
+    monitored_roles = [CARGO_SUBS_TWITCH, CARGO_MEMBROS_YOUTUBE]
     if any(role.id in monitored_roles for role in after.roles):
         try:
             role_caos = after.guild.get_role(CARGO_CAOS_NO_MULTIVERSO)
