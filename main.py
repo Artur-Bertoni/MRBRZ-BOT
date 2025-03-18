@@ -135,11 +135,11 @@ async def embed(
     if imagem:
         embed_data["image"] = {"url": imagem}
 
-    embed = discord.Embed.from_dict(embed_data)
+    preview_embed = discord.Embed.from_dict(embed_data)
 
     await interaction.response.send_message(
         content=f"**Pré-visualização do Embed:**\nAqui está como ficará sua mensagem no canal {canal.mention}:",
-        embed=embed,
+        embed=preview_embed,
         ephemeral=True,
     )
 
@@ -153,7 +153,7 @@ async def embed(
         async def confirm(self, interaction: discord.Interaction, button: Button):
             self.value = True
             self.action = "confirm"
-            await canal.send(embed=embed)
+            await canal.send(embed=preview_embed)
             await interaction.response.edit_message(content="✅ Embed enviado com sucesso!", view=None)
             self.stop()
 
