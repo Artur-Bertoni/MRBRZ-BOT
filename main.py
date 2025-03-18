@@ -121,14 +121,19 @@ async def send_embed(channel, title, description, thumbnail=None, color=0xFFF200
 async def send_role_change_embed(member, role_changed, is_addition):
     channel = bot.get_channel(LOG_CHANNEL)
 
-    action = "adicionado ao(à)" if is_addition else "removido do(a)"
-    reason = (
-        f"após ter o cargo <@&{role_changed.id}> removido"
-        if is_addition
-        else f"após receber o cargo <@&{role_changed.id}>"
-    )
-
-    description = f"Cargo <@&{CARGO_BEYONDERS}> {action} usuário(a) {member.mention} {reason}"
+    if role_changed is None:
+        action = "adicionado ao(à)" if is_addition else "removido do(a)"
+        description = (
+            f"O cargo <@&{CARGO_BEYONDERS}> foi {action} para o(a) usuário(a) {member.mention}."
+        )
+    else:
+        action = "adicionado ao(à)" if is_addition else "removido do(a)"
+        reason = (
+            f"após ter o cargo <@&{role_changed.id}> removido"
+            if is_addition
+            else f"após receber o cargo <@&{role_changed.id}>"
+        )
+        description = f"Cargo <@&{CARGO_BEYONDERS}> {action} usuário(a) {member.mention} {reason}"
 
     await send_embed(
         channel=channel,
