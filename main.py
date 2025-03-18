@@ -122,7 +122,7 @@ async def embed(interaction: discord.Interaction):
         def update_buttons(self):
             for child in self.children:
                 if child.label == "Definir Mensagem de Notificação *":
-                    child.disabled = self.embed_data["template"] == "patchnote"
+                    child.disabled = self.embed_data["template"] == "patchnote" and self.embed_data["template"] is None
                 elif child.label != "Definir Template *":
                     child.disabled = self.embed_data["template"] is None
 
