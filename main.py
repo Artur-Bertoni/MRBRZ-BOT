@@ -124,7 +124,7 @@ async def embed(interaction: discord.Interaction):
                 preview_embed = discord.Embed(
                     title=self.embed_data["titulo"] or "Título do Embed",
                     description=self.embed_data["descricao"] or "Descrição do Embed",
-                    color=discord.Color.blue(),
+                    color=discord.Color.from_rgb(255, 242, 0),
                 )
                 if self.embed_data["imagem"]:
                     preview_embed.set_image(url=self.embed_data["imagem"])
@@ -329,7 +329,7 @@ async def embed(interaction: discord.Interaction):
             final_embed = discord.Embed(
                 title=self.embed_data["titulo"],
                 description=self.embed_data["descricao"],
-                color=discord.Color.blue(),
+                color=discord.Color.from_rgb(255, 242, 0),
             )
             if self.embed_data["imagem"]:
                 final_embed.set_image(url=self.embed_data["imagem"])
@@ -362,7 +362,7 @@ async def embed(interaction: discord.Interaction):
         embed=discord.Embed(
             title="Pré-visualização do Embed",
             description="Aqui você pode pré-visualizar o embed conforme ajusta os campos abaixo.",
-            color=discord.Color.blue(),
+            color=discord.Color.from_rgb(255, 242, 0),
         ),
         view=EmbedView(),
         ephemeral=True,
