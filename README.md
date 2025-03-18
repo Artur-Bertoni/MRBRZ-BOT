@@ -1,41 +1,45 @@
 
 # 🤖 Bot de Gerenciamento de Cargos Discord
 
-Bot desenvolvido para automatizar a gestão de cargos em servidor Discord, com funcionalidades específicas para gerenciamento de membros e criação de mensagens personalizadas.
+Este bot foi desenvolvido para automatizar a gestão de cargos em um servidor Discord. Ele monitora alterações de cargos, gerencia atribuições e remoções automáticas, além de permitir a criação de mensagens interativas e embeds personalizados com templates.
 
 ---
 
 ## 📋 Funcionalidades
 
 ### 🔧 Gerenciamento Automático de Cargos
-- Remove automaticamente o cargo "Caos no Multiverso" quando membros recebem cargos específicos.
-- Monitora alterações de cargos para Subscribers da Twitch e Membros do YouTube.
-- Gerencia automaticamente o cargo especial "@Beyonders" com base nos demais cargos dos membros.
+- Monitora cargos como "@Subs Twitch", "@Membros YouTube" e "@Beyonders", realizando alterações automáticas conforme regras específicas.
+- Remove automaticamente cargos ou adiciona o cargo especial "@Beyonders" com base na combinação de permissões atribuídas a cada membro.
+- Registra todas as alterações de cargos em um canal de logs designado.
 
 ### 🎮 Comandos Administrativos
 - **`/ping`**:
   - Comando simples para verificar a latência do bot (exclusivo para administradores).
 - **`/atualizar_cargos`**:
-  - Permite atualizar manualmente os cargos de todos os membros do servidor, garantindo que cada membro possua o cargo correto.
+  - Executa manualmente uma verificação e atualização de cargos para todos os membros do servidor.
+  - Garante que o cargo especial "@Beyonders" seja atribuído ou removido corretamente.
 - **`/embed`**:
-  - Comando interativo para construir e personalizar mensagens `embed` com botões e modais, incluindo:
-    - **Templates** de mensagens predefinidos (`event`, `announcement`, `championship`, `patchnote`), cada um associado a um canal fixo de envio.
-    - Título, descrição, imagem e notificações personalizadas.
-    - Os canais de envio são configurados automaticamente com base no template escolhido. O botão de seleção de canal foi desativado para maior consistência.
-    - Pré-visualização do embed antes do envio final.
+  - Comando interativo para construir e personalizar mensagens `embed` com botões e modais, com as seguintes possibilidades:
+    - Seleção de templates predefinidos (`event`, `announcement`, `championship`, `patchnote`).
+    - Personalização de título, descrição, imagem e mensagem de notificação.
+    - Pré-visualização do embed.
+    - Envio automático para canais específicos dependendo do template escolhido.
+
+### 📚 Sintonia para Atualizações
+- O bot mantém seus comandos sincronizados, permitindo que sejam facilmente disponíveis e atualizados sem reinício manual do servidor.
 
 ---
 
 ## 🛠 Tecnologias Utilizadas
 
 - **Python 3**: Linguagem principal do projeto.
-- **discord.py**: Framework para interação com a API do Discord.
-- **Flask**: Servidor web leve para manter o bot online.
-- **Threading**: Utilizado para gerenciar o servidor web em paralelo.
+- **discord.py**: Framework para interagir com a API do Discord.
+- **JSON**: Para suportar templates reutilizáveis para mensagens `embed`.
+- **Sistema de Modais e Componentes**: Criação interativa de mensagens customizadas.
 
 ---
 
-## 📚 Estrutura do Projeto
+## 📂 Estrutura do Projeto
 
 ```
 MRBRZ-BOT/
@@ -55,44 +59,52 @@ MRBRZ-BOT/
 ## 🔧 Configuração
 
 1. **Variáveis de Ambiente Necessárias**:
-   - `TOKEN`: Token de autenticação do bot Discord.
-   - `APPLICATION_ID`: ID da aplicação Discord.
+   - `TOKEN`: Token do bot fornecido pelo Discord Developer Portal.
+   - `APPLICATION_ID`: ID da aplicação criada no Discord.
 
-2. **Configuração Local**:
-   - Configure o token e as variáveis acima no ambiente.
-   - Instale as dependências do projeto usando `pip install -r requirements.txt`.
-   - Execute o arquivo principal:
+2. **Instalação**:
+   - Instale as dependências do projeto:
+     ```bash
+     pip install -r requirements.txt
+     ```
+   - Configure os IDs de cargos e canais diretamente no código (`main.py`).
+
+3. **Execução**:
+   - Inicialize o bot com:
      ```bash
      python main.py
      ```
 
-3. **IDs de Canais Pré-Definidos**:
-   Cada template está associado ao envio automático para um canal fixo:
-   - `event`: Canal de ID `1336666506146349078`.
-   - `championship`: Canal de ID `1342271005778776064`.
-   - `announcement`: Canal de ID `1336666125257146440`.
-   - `patchnote`: Canal de ID `1351534926339506236`.
+---
+
+## 📢 Observação Sobre Templates
+O comando `/embed` utiliza os seguintes templates predefinidos:
+- **`event`**: Enviado automaticamente para o canal de eventos.
+- **`championship`**: Associado ao canal de campeonatos do servidor.
+- **`announcement`**: Voltado para anúncios gerais do servidor.
+- **`patchnote`**: Destinado para patch notes e notificações.
+
+IDs de canais personalizados podem ser ajustados diretamente.
 
 ---
 
 ## 🔐 Permissões Necessárias
 
-O bot precisa das seguintes permissões no Discord:
-- Ler mensagens.
-- Gerenciar cargos.
-- Enviar mensagens.
-- Ver canais.
-- Gerenciar webhooks.
+Antes de adicionar o bot ao seu servidor, certifique-se de conceder as permissões adequadas:
+- Gerenciar Cargos.
+- Ler Mensagens.
+- Enviar Mensagens e Embeds.
+- Gerenciar Webhooks (para notificações automáticas).
 
 ---
 
-## 📝 Logs
+## 📝 Registro de Logs
 
-O bot mantém um sistema de logs que registra:
-- Alterações de cargos.
-- Sincronização de comandos.
-- Mensagens de erro ou exceções.
+Todas as atividades de alteração de cargo e notificações geradas pelo bot são registradas no canal de logs designado. Essas mensagens incluem:
+- Ações realizadas no cargo "@Beyonders".
+- Motivo e atribuição/remanejamento de cargos.
+- Relatórios de sincronização de comandos.
 
 ---
 
-Desenvolvido com 💜 para gerenciamento eficiente de comunidades Discord.
+Projeto desenvolvido com 💜 para tornar a administração de servidores Discord mais prática e eficiente.
