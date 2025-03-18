@@ -172,8 +172,15 @@ async def embed(
             self.stop()
 
     class EditModal(Modal, title="Editar Informações do Embed"):
-        def __init__(self, template, notificacao, titulo, descricao, canal):
+        def __init__(self, template, notificacao, titulo, descricao, canal, imagem):
             super().__init__()
+            self.template = template
+            self.notificacao = notificacao
+            self.titulo = titulo
+            self.descricao = descricao
+            self.canal = canal
+            self.imagem = imagem
+
             self.add_item(TextInput(label="Template", default=template, required=True))
             self.add_item(
                 TextInput(label="Notificação", default=notificacao, required=True, style=discord.TextStyle.paragraph))
