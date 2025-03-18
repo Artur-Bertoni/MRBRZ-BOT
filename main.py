@@ -139,8 +139,8 @@ async def embed(interaction: discord.Interaction):
                     self.update_preview_callback = update_preview_callback
 
                 template_input = TextInput(
-                    label="Template (event, announcement, championship, patchnote)",
-                    placeholder="Digite o nome do template",
+                    label="Escolha o Template",
+                    placeholder="Opções: \"event\", \"announcement\", \"championship\" ou \"patchnote\"",
                     required=True,
                 )
 
@@ -220,6 +220,37 @@ async def embed(interaction: discord.Interaction):
 
             await inner_interaction.response.send_modal(
                 DescricaoModal(self.embed_data, self.update_preview)
+            )
+
+        # Botão para definir o Canal de Envio
+        @discord.ui.button(label="Definir Canal de Envio", style=discord.ButtonStyle.primary)
+        async def define_canal(self, inner_interaction: discord.Interaction, button: Button):
+            class CanalModal(Modal, title="Definir Canal de Envio"):
+                def __init__(self, embed_data, update_preview_callback):
+                    super().__init__()
+                    self.embed_data = embed_data
+                    self.update_preview_callback = update_preview_callback
+
+                canal_input = TextInput(
+                    label="ID do Canal", placeholder="Insira o ID do canal", required=True
+                )
+
+                async def on_submit(self, modal_interaction: discord.Interaction):
+                    try:
+                        # Validação do ID do canal
+                        canal_id = int(self.canal_input.value)
+                        canal = bot.get_channel(canal_id)
+                        if not canal:
+                            raise ValueError
+                        self.embed_data["canal_envio"] = canal
+                        await self.update_preview_callback(modal_interaction)
+                    except ValueError:
+                        await modal_interaction.response.send_message(
+                            "❌ ID de canal inválido. Tente novamente.", ephemeral=True
+                        )
+
+            await inner_interaction.response.send_modal(
+                CanalModal(self.embed_data, self.update_preview)
             )
 
         # Botão para adicionar uma imagem
