@@ -142,18 +142,23 @@ async def embed(interaction: discord.Interaction):
                 if self.embed_data["imagem"]:
                     preview_embed.set_image(url=self.embed_data["imagem"])
 
-            external_info = f"Canal de envio: {self.embed_data['canal_envio'].mention if self.embed_data['canal_envio'] else 'Nenhum'}\n"
-            external_info += f"Mensagem de notificação: {self.embed_data['notificacao'] or 'Nenhuma'}"
+                if "footer" in template_embed and "text" in template_embed["footer"]:
+                    preview_embed.set_footer(text=template_embed["footer"]["text"])
+                else:
+                    preview_embed.set_footer(text="Atenciosamente, a equipe Marvel Rivals Brazuka")
+
+            external_info = f"**Canal de envio:** {self.embed_data['canal_envio'].mention if self.embed_data['canal_envio'] else 'Nenhum'}\n"
+            external_info += f"**Mensagem de notificação:** {self.embed_data['notificacao'] or 'Nenhuma'}"
 
             await interaction.response.edit_message(
-                content=f"Monte seu embed com as características abaixo:\n\n{external_info}",
+                content=f"Monte seu embed com as características abaixo:\n(Opções marcadas com '*' são obrigatórias)\n\n{external_info}",
                 embed=preview_embed,
                 view=self,
             )
 
         async def load_template(self, template_name):
             try:
-                with open(f"./embed_templates/{template_name}_template.json", "r", encoding="utf-8") as file:
+                with open(f"{TEMPLATES_DIR}{template_name}_template.json", "r", encoding="utf-8") as file:
                     self.template_content = json.load(file)
                 self.embed_data["template"] = template_name
                 self.embed_data["titulo"] = None
@@ -165,7 +170,7 @@ async def embed(interaction: discord.Interaction):
                 self.template_content = None
                 raise Exception("❌ Template não encontrado.")
 
-        @discord.ui.button(label="Definir Template", style=discord.ButtonStyle.primary, row=0)
+        @discord.ui.button(label="Definir Template *", style=discord.ButtonStyle.primary, row=0)
         async def define_template(self, interaction: discord.Interaction, button: Button):
             class TemplateModal(Modal, title="Definir Template"):
                 def __init__(self, embed_view):
@@ -198,7 +203,7 @@ async def embed(interaction: discord.Interaction):
 
             await interaction.response.send_modal(TemplateModal(self))
 
-        @discord.ui.button(label="Definir Mensagem de Notificação", style=discord.ButtonStyle.primary, row=0)
+        @discord.ui.button(label="Definir Mensagem de Notificação *", style=discord.ButtonStyle.primary, row=0)
         async def define_notificacao(self, interaction: discord.Interaction, button: Button):
             class NotificacaoModal(Modal, title="Definir Mensagem de Notificação"):
                 def __init__(self, embed_view):
@@ -224,7 +229,7 @@ async def embed(interaction: discord.Interaction):
 
             await interaction.response.send_modal(NotificacaoModal(self))
 
-        @discord.ui.button(label="Definir Título", style=discord.ButtonStyle.primary, row=1)
+        @discord.ui.button(label="Definir Título *", style=discord.ButtonStyle.primary, row=1)
         async def define_titulo(self, interaction: discord.Interaction, button: Button):
             class TituloModal(Modal, title="Definir Título"):
                 def __init__(self, embed_view):
@@ -246,7 +251,7 @@ async def embed(interaction: discord.Interaction):
 
             await interaction.response.send_modal(TituloModal(self))
 
-        @discord.ui.button(label="Definir Descrição", style=discord.ButtonStyle.primary, row=1)
+        @discord.ui.button(label="Definir Descrição *", style=discord.ButtonStyle.primary, row=1)
         async def define_descricao(self, interaction: discord.Interaction, button: Button):
             class DescricaoModal(Modal, title="Definir Descrição"):
                 def __init__(self, embed_view):
@@ -268,9 +273,9 @@ async def embed(interaction: discord.Interaction):
 
             await interaction.response.send_modal(DescricaoModal(self))
 
-        @discord.ui.button(label="Definir Canal de Envio", style=discord.ButtonStyle.primary, row=1)
+        @discord.ui.button(label="Definir ID do Canal de Envio *", style=discord.ButtonStyle.primary, row=2)
         async def define_canal(self, interaction: discord.Interaction, button: Button):
-            class CanalModal(Modal, title="Definir Canal de Envio"):
+            class CanalModal(Modal, title="Definir ID do Canal de Envio"):
                 def __init__(self, embed_view):
                     super().__init__()
                     self.embed_view = embed_view
@@ -479,7 +484,6 @@ async def update_member_roles(member, before_roles=None, after_roles=None):
 
 
 def load_template(template_name: str):
-    """Carrega os templates JSON de um arquivo"""
     with open(os.path.join(TEMPLATES_DIR, f"{template_name}_template.json"), "r", encoding="utf-8") as file:
         return json.load(file)
 
