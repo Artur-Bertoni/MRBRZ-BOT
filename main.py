@@ -166,7 +166,7 @@ async def sync_commands():
 
 
 async def update_member_roles(member):
-    monitored_roles = {CARGO_SUBS_TWITCH, CARGO_MEMBROS_YOUTUBE}
+    monitored_roles = {CARGO_SUBS_TWITCH, CARGO_MEMBROS_YOUTUBE, CARGO_TESTE}
     role_beyonders = member.guild.get_role(CARGO_BEYONDERS)
 
     if not role_beyonders:
