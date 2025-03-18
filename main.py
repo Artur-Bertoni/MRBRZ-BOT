@@ -36,6 +36,11 @@ LOG_CHANNEL = 1341465591667753060
 
 TEMPLATES_DIR = "./embed_templates/"
 
+CHANNEL_EVENT = 1336666506146349078
+CHANNEL_CHAMPIONSHIP = 1342271005778776064
+CHANNEL_ANNOUNCEMENT = 1336666125257146440
+CHANNEL_PATCHNOTE = 1351534926339506236
+
 
 #######################
 # Comandos
@@ -116,7 +121,9 @@ async def embed(interaction: discord.Interaction):
 
         def update_buttons(self):
             for child in self.children:
-                if child.label != "Definir Template":
+                if child.label == "Definir Mensagem de Notificação *":
+                    child.disabled = self.embed_data["template"] == "patchnote"
+                elif child.label != "Definir Template *":
                     child.disabled = self.embed_data["template"] is None
 
         async def update_preview(self, interaction):
@@ -165,6 +172,18 @@ async def embed(interaction: discord.Interaction):
                 self.embed_data["descricao"] = None
                 self.embed_data["notificacao"] = None
                 self.embed_data["imagem"] = None
+
+                # Configurar canais de envio com base no template
+                if template_name == "event":
+                    self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_EVENT)
+                elif template_name == "championship":
+                    self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_CHAMPIONSHIP)
+                elif template_name == "announcement":
+                    self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_ANNOUNCEMENT)
+                elif template_name == "patchnote":
+                    self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_PATCHNOTE)
+                    self.embed_data["notificacao"] = self.template_content["content"]
+
                 self.update_buttons()
             except FileNotFoundError:
                 self.template_content = None
@@ -272,34 +291,6 @@ async def embed(interaction: discord.Interaction):
                     )
 
             await interaction.response.send_modal(DescricaoModal(self))
-
-        @discord.ui.button(label="Definir ID do Canal de Envio *", style=discord.ButtonStyle.primary, row=2)
-        async def define_canal(self, interaction: discord.Interaction, button: Button):
-            class CanalModal(Modal, title="Definir ID do Canal de Envio"):
-                def __init__(self, embed_view):
-                    super().__init__()
-                    self.embed_view = embed_view
-
-                canal_input = TextInput(
-                    label="ID do Canal",
-                    placeholder="Digite o ID do canal onde o embed será enviado.",
-                    required=True,
-                )
-
-                async def on_submit(self, modal_interaction: discord.Interaction):
-                    try:
-                        canal_id = int(self.canal_input.value)
-                        canal = bot.get_channel(canal_id)
-                        if not canal:
-                            raise ValueError
-                        self.embed_view.embed_data["canal_envio"] = canal
-                        await self.embed_view.update_preview(modal_interaction)
-                    except ValueError:
-                        await modal_interaction.response.send_message(
-                            "❌ ID de canal inválido. Por favor, tente novamente.", ephemeral=True
-                        )
-
-            await interaction.response.send_modal(CanalModal(self))
 
         @discord.ui.button(label="Adicionar Imagem", style=discord.ButtonStyle.primary, row=2)
         async def adiciona_imagem(self, interaction: discord.Interaction, button: Button):
