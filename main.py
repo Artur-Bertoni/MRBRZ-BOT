@@ -6,7 +6,6 @@ import os
 import discord
 from discord.ext import commands
 
-# Configuração inicial do bot
 intents = discord.Intents.default()
 intents.guilds = True
 intents.guild_messages = True
@@ -29,7 +28,7 @@ if not TOKEN:
 GUILD_ID = 1336381520977596518
 CARGO_SUBS_TWITCH = 1336425874177790012
 CARGO_MEMBROS_YOUTUBE = 1336425799359791174
-CARGO_CAOS_NO_MULTIVERSO = 1342108534350811206
+CARGO_BEYONDERS = 1342108534350811206
 CARGO_TESTE = 1343947583260983338
 LOG_CHANNEL = 1341465591667753060
 
@@ -58,6 +57,39 @@ async def ping(interaction: discord.Interaction):
     await interaction.delete_original_response()
 
 
+@bot.tree.command(
+    name="atualizar_cargos",
+    description="Atualiza manualmente os cargos de todos os membros do servidor.",
+    guild=discord.Object(id=GUILD_ID))
+async def atualizar_cargos(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message(
+            "Você não tem permissão para usar este comando.", ephemeral=True
+        )
+        return
+
+    await interaction.response.send_message(
+        "🔄 Iniciando atualização de cargos para todos os membros...",
+        ephemeral=True
+    )
+
+    guild = interaction.guild
+    if not guild:
+        await interaction.followup.send("Erro: Servidor não encontrado!")
+        return
+
+    updated_count = 0
+
+    for member in guild.members:
+        if not member.bot:
+            await update_member_roles(member)
+            updated_count += 1
+
+    await interaction.followup.send(
+        f"✅ Atualização de cargos concluída! Total de membros processados: {updated_count}."
+    )
+
+
 #######################
 # Eventos
 #######################
@@ -72,16 +104,7 @@ async def on_member_update(before, after):
     if before.guild.id != GUILD_ID:
         return
 
-    monitored_roles = [CARGO_SUBS_TWITCH, CARGO_MEMBROS_YOUTUBE]
-    if any(role.id in monitored_roles for role in after.roles):
-        try:
-            role_caos = after.guild.get_role(CARGO_CAOS_NO_MULTIVERSO)
-            if role_caos and role_caos in after.roles:
-                role_added = next((role for role in after.roles if role not in before.roles), None)
-                await after.remove_roles(role_caos)
-                await send_role_change_embed(after, role_added)
-        except Exception as e:
-            print(f"Erro ao tentar remover o cargo: {e}")
+    await update_member_roles(after)
 
 
 #######################
@@ -95,12 +118,22 @@ async def send_embed(channel, title, description, thumbnail=None, color=0xFFF200
         await channel.send(embed=embed)
 
 
-async def send_role_change_embed(member, role_added):
+async def send_role_change_embed(member, role_changed, is_addition):
     channel = bot.get_channel(LOG_CHANNEL)
+
+    action = "adicionado ao(à)" if is_addition else "removido do(a)"
+    reason = (
+        f"após ter o cargo <@&{role_changed.id}> removido"
+        if is_addition
+        else f"após receber o cargo <@&{role_changed.id}>"
+    )
+
+    description = f"Cargo <@&{CARGO_BEYONDERS}> {action} usuário(a) {member.mention} {reason}"
+
     await send_embed(
-        channel,
+        channel=channel,
         title=f"**Cargo alterado para {member.display_name}**",
-        description=f"Cargo <@&{CARGO_CAOS_NO_MULTIVERSO}> removido do(a) usuário(a) {member.mention} após receber o cargo <@&{role_added.id}>",
+        description=description,
         thumbnail=member.avatar.url,
     )
 
@@ -109,9 +142,9 @@ async def sync_commands():
     try:
         guild = discord.Object(id=GUILD_ID)
         bot.tree.copy_global_to(guild=guild)
-        commands = await bot.tree.sync(guild=guild)
+        all_commands = await bot.tree.sync(guild=guild)
 
-        current_commands = [f"`{cmd.name}`" for cmd in commands]
+        current_commands = [f"`{cmd.name}`" for cmd in all_commands]
         log_message = "Comandos sincronizados com sucesso!\n"
         log_message += f"Comandos ativos: {', '.join(current_commands)}" if current_commands else "Nenhum comando ativo no momento."
 
@@ -125,6 +158,28 @@ async def sync_commands():
             title="**Erro na Sincronização**",
             description=f"Ocorreu um erro ao sincronizar os comandos: {str(e)}",
             color=0xFF0000)
+
+
+async def update_member_roles(member):
+    monitored_roles = {CARGO_SUBS_TWITCH, CARGO_MEMBROS_YOUTUBE}
+    role_beyonders = member.guild.get_role(CARGO_BEYONDERS)
+
+    if not role_beyonders:
+        return
+
+    try:
+        if any(role.id in monitored_roles for role in member.roles):
+            if role_beyonders in member.roles:
+                role_added = next((role for role in member.roles if role.id in monitored_roles), None)
+                await member.remove_roles(role_beyonders)
+                await send_role_change_embed(member, role_added, is_addition=True)
+        else:
+            if role_beyonders not in member.roles:
+                role_removed = next((role for role in member.roles if role.id in monitored_roles), None)
+                await member.add_roles(role_beyonders)
+                await send_role_change_embed(member, role_removed, is_addition=False)
+    except Exception as e:
+        print(f"Erro ao atualizar o cargo de {member.display_name}: {e}")
 
 
 #######################
