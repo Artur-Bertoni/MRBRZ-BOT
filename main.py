@@ -1,10 +1,13 @@
 #######################
 # Imports e Setup Inicial
 #######################
-import os
-
+import asyncio
+import json
 import discord
+from discord import app_commands
 from discord.ext import commands
+
+import os
 
 intents = discord.Intents.default()
 intents.guilds = True
@@ -31,6 +34,8 @@ CARGO_MEMBROS_YOUTUBE = 1336425799359791174
 CARGO_BEYONDERS = 1342108534350811206
 CARGO_TESTE = 1343947583260983338
 LOG_CHANNEL = 1341465591667753060
+
+TEMPLATES_DIR = "./embed_templates/"
 
 
 #######################
@@ -88,6 +93,80 @@ async def atualizar_cargos(interaction: discord.Interaction):
     await interaction.followup.send(
         f"✅ Atualização de cargos concluída! Total de membros processados: {updated_count}."
     )
+
+
+@bot.tree.command(
+    name="embed",
+    description="Cria e envia um embed baseado em um template.",
+    guild=discord.Object(id=GUILD_ID)  # O comando será restrito a um servidor específico (se necessário)
+)
+@app_commands.describe(
+    template="Escolha entre: event, announcement, championship ou patchnote",
+    notificacao="Mensagem de notificação personalizada",
+    titulo="Título que será exibido no embed",
+    descricao="Texto descritivo que será exibido no corpo do embed",
+    canal="Canal onde o embed será enviado",
+    imagem="URL para a imagem no corpo do embed (opcional)",
+)
+async def embed(
+        interaction: discord.Interaction,
+        template: str,
+        notificacao: str,
+        titulo: str,
+        descricao: str,
+        canal: discord.TextChannel,
+        imagem: str = None,
+):
+    # Carregar o template especificado
+    try:
+        template_data = load_template(template)
+    except FileNotFoundError:
+        await interaction.response.send_message(
+            f"❌ Template '{template}' não encontrado. Certifique-se de usar: event, announcement, championship, ou patchnote.",
+            ephemeral=True,
+        )
+        return
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Erro ao carregar o template: {e}", ephemeral=True)
+        return
+
+    # Substituir as informações no template
+    template_data["content"] = template_data["content"].replace("[Notificação]", notificacao)
+    embed_data = template_data["embeds"][0]
+    embed_data["description"] = embed_data["description"].replace("[Título]", titulo).replace(
+        "[Descrição]", descricao
+    )
+    if imagem:
+        embed_data["image"] = {"url": imagem}
+
+    # Criar embed
+    embed_created = discord.Embed.from_dict(embed_data)
+
+    # Enviar pré-visualização
+    await interaction.response.send_message(
+        content=f"**Pré-visualização do Embed:**\nAqui está como ficará sua mensagem no canal {canal.mention}:",
+        embed=embed_created,
+        ephemeral=True,
+    )
+
+    # Confirmar envio
+    await interaction.followup.send("Você deseja enviar este embed? Responda com `Sim` ou `Não`. (Timeout: 30s)")
+
+    def check(msg):
+        return msg.author == interaction.user and msg.channel == interaction.channel and msg.content.lower() in [
+            "sim", "não"]
+
+    try:
+        response = await bot.wait_for("message", timeout=30.0, check=check)
+    except asyncio.TimeoutError:
+        await interaction.followup.send("❌ Tempo expirado. Comando cancelado.", ephemeral=True)
+        return
+
+    if response.content.lower() == "sim":
+        await canal.send(content=template_data["content"], embed=embed_created)
+        await interaction.followup.send("✅ Embed enviado com sucesso!")
+    else:
+        await interaction.followup.send("❌ Envio cancelado. Use o comando novamente se necessário.", ephemeral=True)
 
 
 #######################
@@ -197,6 +276,12 @@ async def update_member_roles(member, before_roles=None, after_roles=None):
                 )
     except Exception as e:
         print(f"Erro ao atualizar o cargo de {member.display_name}: {e}")
+
+
+def load_template(template_name: str):
+    """Carrega os templates JSON de um arquivo"""
+    with open(os.path.join(TEMPLATES_DIR, f"{template_name}_template.json"), "r", encoding="utf-8") as file:
+        return json.load(file)
 
 
 #######################

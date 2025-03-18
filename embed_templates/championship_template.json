@@ -1,0 +1,28 @@
+{
+  "content": "<@&1342293221023416351> [Notificação]",
+  "tts": false,
+  "embeds": [
+    {
+      "id": 501564444,
+      "description": "# [Título]\n\n[Descrição]",
+      "color": 16773632,
+      "footer": {
+        "text": "Atenciosamente, a equipe Marvel Rivals Brazuka"
+      },
+      "image": {
+        "url": "https://media.discordapp.net/attachments/1337263839896666152/1344813393592324126/image.png?ex=67c2ef52&is=67c19dd2&hm=1c42af9f7af9268faf14d61b7ab78f252681b17f1e5fbcdb5d1f268e649c015b&=&format=webp&quality=lossless"
+      },
+      "fields": [
+        {
+          "id": 120613196,
+          "name": " ",
+          "value": " "
+        }
+      ]
+    }
+  ],
+  "components": [],
+  "actions": {},
+  "username": "Marvel Rivals Brazuka",
+  "avatar_url": "https://media.discordapp.net/attachments/1337263839896666152/1337263915670835221/Cortes_MRB.png?ex=67a6cf92&is=67a57e12&hm=ec6980221abea3a69c0107f4e00ff0a23ab9c477e3d111f370a2a058dedb46d2&=&format=webp&quality=lossless"
+}
