@@ -6,6 +6,7 @@ import json
 import discord
 from discord import app_commands
 from discord.ext import commands
+from discord.ui import View, Button
 
 import os
 
@@ -98,7 +99,7 @@ async def atualizar_cargos(interaction: discord.Interaction):
 @bot.tree.command(
     name="embed",
     description="Cria e envia um embed baseado em um template.",
-    guild=discord.Object(id=GUILD_ID)  # O comando será restrito a um servidor específico (se necessário)
+    guild=discord.Object(id=GUILD_ID)
 )
 @app_commands.describe(
     template="Escolha entre: event, announcement, championship ou patchnote",
@@ -117,7 +118,6 @@ async def embed(
         canal: discord.TextChannel,
         imagem: str = None,
 ):
-    # Carregar o template especificado
     try:
         template_data = load_template(template)
     except FileNotFoundError:
@@ -130,43 +130,63 @@ async def embed(
         await interaction.response.send_message(f"❌ Erro ao carregar o template: {e}", ephemeral=True)
         return
 
-    # Substituir as informações no template
     template_data["content"] = template_data["content"].replace("[Notificação]", notificacao)
     embed_data = template_data["embeds"][0]
-    embed_data["description"] = embed_data["description"].replace("[Título]", titulo).replace(
-        "[Descrição]", descricao
-    )
+    embed_data["description"] = embed_data["description"].replace("[Título]", titulo).replace("[Descrição]", descricao)
     if imagem:
         embed_data["image"] = {"url": imagem}
 
-    # Criar embed
-    embed_created = discord.Embed.from_dict(embed_data)
+    embed = discord.Embed.from_dict(embed_data)
 
-    # Enviar pré-visualização
     await interaction.response.send_message(
         content=f"**Pré-visualização do Embed:**\nAqui está como ficará sua mensagem no canal {canal.mention}:",
-        embed=embed_created,
+        embed=embed,
         ephemeral=True,
     )
 
-    # Confirmar envio
-    await interaction.followup.send("Você deseja enviar este embed? Responda com `Sim` ou `Não`. (Timeout: 30s)")
+    class ConfirmView(View):
+        def __init__(self, *, timeout=30):
+            super().__init__(timeout=timeout)
+            self.value = None
+            self.action = None
 
-    def check(msg):
-        return msg.author == interaction.user and msg.channel == interaction.channel and msg.content.lower() in [
-            "sim", "não"]
+        @discord.ui.button(label="Sim", style=discord.ButtonStyle.green)
+        async def confirm(self, interaction: discord.Interaction, button: Button):
+            self.value = True
+            self.action = "confirm"
+            await interaction.response.edit_message(content="✅ Embed confirmado. Enviando...", view=None)
+            self.stop()
 
-    try:
-        response = await bot.wait_for("message", timeout=30.0, check=check)
-    except asyncio.TimeoutError:
-        await interaction.followup.send("❌ Tempo expirado. Comando cancelado.", ephemeral=True)
-        return
+        @discord.ui.button(label="Não", style=discord.ButtonStyle.red)
+        async def cancel(self, interaction: discord.Interaction, button: Button):
+            self.value = False
+            self.action = "cancel"
+            await interaction.response.edit_message(content="❌ Envio cancelado. Caso queira, use o comando novamente.",
+                                                    view=None)
+            self.stop()
 
-    if response.content.lower() == "sim":
-        await canal.send(content=template_data["content"], embed=embed_created)
-        await interaction.followup.send("✅ Embed enviado com sucesso!")
-    else:
-        await interaction.followup.send("❌ Envio cancelado. Use o comando novamente se necessário.", ephemeral=True)
+        @discord.ui.button(label="Editar", style=discord.ButtonStyle.blurple)
+        async def edit(self, interaction: discord.Interaction, button: Button):
+            self.value = False
+            self.action = "edit"
+            await interaction.response.edit_message(content="🔄 Reabrindo o prompt para edição. Aguarde...", view=None)
+            self.stop()
+
+    view = ConfirmView()
+    await interaction.followup.send("Você deseja enviar este embed?", view=view, ephemeral=True)
+
+    await view.wait()
+
+    if view.action == "confirm":
+        await canal.send(content=template_data["content"], embed=embed)
+        await interaction.followup.send("✅ Embed enviado com sucesso!", ephemeral=True)
+    elif view.action == "cancel":
+        await interaction.followup.send("❌ Envio do embed foi cancelado.", ephemeral=True)
+    elif view.action == "edit":
+        await interaction.followup.send(
+            content="🔄 Por favor, reenvie o comando `/embed` com os novos valores que deseja alterar.",
+            ephemeral=True,
+        )
 
 
 #######################
