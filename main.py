@@ -115,14 +115,12 @@ async def embed(interaction: discord.Interaction):
             self.update_buttons()
 
         def update_buttons(self):
-            # Ativa ou desativa botões dependendo do estado do template
             for child in self.children:
                 if child.label != "Definir Template":
                     child.disabled = self.embed_data["template"] is None
 
         async def update_preview(self, interaction):
-            # Cria o embed de visualização
-            if not self.template_content:  # Se não há template, exibe valores padrão
+            if not self.template_content:
                 preview_embed = discord.Embed(
                     title=self.embed_data["titulo"] or "Título do Embed",
                     description=self.embed_data["descricao"] or "Descrição do Embed",
@@ -130,11 +128,10 @@ async def embed(interaction: discord.Interaction):
                 )
                 if self.embed_data["imagem"]:
                     preview_embed.set_image(url=self.embed_data["imagem"])
-            else:  # Adapta o embed com base no template carregado
+            else:
                 template_embed = self.template_content["embeds"][0]
                 preview_embed = discord.Embed.from_dict(template_embed)
 
-                # Substitui campos com os valores do estado atual
                 preview_embed.description = template_embed["description"]
                 preview_embed.description = preview_embed.description.replace(
                     "[Título]", self.embed_data["titulo"] or "[Título]"
@@ -155,7 +152,6 @@ async def embed(interaction: discord.Interaction):
             )
 
         async def load_template(self, template_name):
-            # Carregamento do template a partir de um arquivo JSON
             try:
                 with open(f"./embed_templates/{template_name}_template.json", "r", encoding="utf-8") as file:
                     self.template_content = json.load(file)
@@ -227,6 +223,50 @@ async def embed(interaction: discord.Interaction):
                     )
 
             await interaction.response.send_modal(NotificacaoModal(self))
+
+        @discord.ui.button(label="Definir Título", style=discord.ButtonStyle.primary, disabled=True)
+        async def define_titulo(self, interaction: discord.Interaction, button: Button):
+            class TituloModal(Modal, title="Definir Título"):
+                def __init__(self, embed_view):
+                    super().__init__()
+                    self.embed_view = embed_view
+
+                titulo_input = TextInput(
+                    label="Título",
+                    placeholder="Insira o título para substituir [Título]",
+                    required=True,
+                )
+
+                async def on_submit(self, modal_interaction: discord.Interaction):
+                    self.embed_view.embed_data["titulo"] = self.titulo_input.value
+                    await self.embed_view.update_preview(modal_interaction)
+                    await modal_interaction.response.send_message(
+                        f"✅ Título definido com sucesso!", ephemeral=True
+                    )
+
+            await interaction.response.send_modal(TituloModal(self))
+
+        @discord.ui.button(label="Definir Descrição", style=discord.ButtonStyle.primary, disabled=True)
+        async def define_descricao(self, interaction: discord.Interaction, button: Button):
+            class DescricaoModal(Modal, title="Definir Descrição"):
+                def __init__(self, embed_view):
+                    super().__init__()
+                    self.embed_view = embed_view
+
+                descricao_input = TextInput(
+                    label="Descrição",
+                    placeholder="Insira a descrição para substituir [Descrição]",
+                    required=True,
+                )
+
+                async def on_submit(self, modal_interaction: discord.Interaction):
+                    self.embed_view.embed_data["descricao"] = self.descricao_input.value
+                    await self.embed_view.update_preview(modal_interaction)
+                    await modal_interaction.response.send_message(
+                        f"✅ Descrição definida com sucesso!", ephemeral=True
+                    )
+
+            await interaction.response.send_modal(DescricaoModal(self))
 
         @discord.ui.button(label="Adicionar Imagem", style=discord.ButtonStyle.primary, disabled=True)
         async def adiciona_imagem(self, interaction: discord.Interaction, button: Button):
@@ -306,6 +346,15 @@ async def embed(interaction: discord.Interaction):
                 await interaction.response.send_message(
                     "❌ Não foi possível enviar o embed. Verifique o ID do canal e permissões.", ephemeral=True
                 )
+            self.stop()
+
+        @discord.ui.button(label="Cancelar", style=discord.ButtonStyle.danger)
+        async def cancelar(self, interaction: discord.Interaction, button: Button):
+            await interaction.response.edit_message(
+                content="❌ O processo foi cancelado.",
+                embed=None,
+                view=None,
+            )
             self.stop()
 
     await interaction.response.send_message(
