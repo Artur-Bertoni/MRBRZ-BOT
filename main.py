@@ -102,7 +102,7 @@ async def atualizar_cargos(interaction: discord.Interaction):
 async def embed(interaction: discord.Interaction):
     # Classe para manter o estado do embed dentro do escopo do comando
     class EmbedView(View):
-        def __init__(self, *, timeout=300):  # Time de espera para inatividade: 300s
+        def __init__(self, *, timeout=300):  # Tempo de espera para inatividade: 300s
             super().__init__(timeout=timeout)
             self.embed_data = {
                 "template": None,
@@ -133,6 +133,11 @@ async def embed(interaction: discord.Interaction):
         @discord.ui.button(label="Definir Template", style=discord.ButtonStyle.primary)
         async def define_template(self, inner_interaction: discord.Interaction, button: Button):
             class TemplateModal(Modal, title="Definir Template"):
+                def __init__(self, embed_data, update_preview_callback):
+                    super().__init__()
+                    self.embed_data = embed_data
+                    self.update_preview_callback = update_preview_callback
+
                 template_input = TextInput(
                     label="Template (event, announcement, championship, patchnote)",
                     placeholder="Digite o nome do template",
@@ -147,40 +152,61 @@ async def embed(interaction: discord.Interaction):
                             ephemeral=True,
                         )
                         return
-                    self.view.embed_data["template"] = template
-                    await self.view.update_preview(modal_interaction)
+                    self.embed_data["template"] = template
+                    await self.update_preview_callback(modal_interaction)
 
-            await inner_interaction.response.send_modal(TemplateModal())
+            await inner_interaction.response.send_modal(
+                TemplateModal(self.embed_data, self.update_preview)
+            )
 
         # Botão para definir a Mensagem de Notificação
         @discord.ui.button(label="Definir Mensagem de Notificação", style=discord.ButtonStyle.primary)
         async def define_notificacao(self, inner_interaction: discord.Interaction, button: Button):
             class NotificacaoModal(Modal, title="Definir Mensagem de Notificação"):
+                def __init__(self, embed_data, update_preview_callback):
+                    super().__init__()
+                    self.embed_data = embed_data
+                    self.update_preview_callback = update_preview_callback
+
                 notificacao_input = TextInput(label="Mensagem da Notificação", placeholder="Digite a mensagem",
                                               required=True)
 
                 async def on_submit(self, modal_interaction: discord.Interaction):
-                    self.view.embed_data["notificacao"] = self.notificacao_input.value
-                    await self.view.update_preview(modal_interaction)
+                    self.embed_data["notificacao"] = self.notificacao_input.value
+                    await self.update_preview_callback(modal_interaction)
 
-            await inner_interaction.response.send_modal(NotificacaoModal())
+            await inner_interaction.response.send_modal(
+                NotificacaoModal(self.embed_data, self.update_preview)
+            )
 
         # Botão para definir o Título
         @discord.ui.button(label="Definir Título", style=discord.ButtonStyle.primary)
         async def define_titulo(self, inner_interaction: discord.Interaction, button: Button):
             class TituloModal(Modal, title="Definir Título"):
+                def __init__(self, embed_data, update_preview_callback):
+                    super().__init__()
+                    self.embed_data = embed_data
+                    self.update_preview_callback = update_preview_callback
+
                 titulo_input = TextInput(label="Título do Embed", placeholder="Digite o título", required=True)
 
                 async def on_submit(self, modal_interaction: discord.Interaction):
-                    self.view.embed_data["titulo"] = self.titulo_input.value
-                    await self.view.update_preview(modal_interaction)
+                    self.embed_data["titulo"] = self.titulo_input.value
+                    await self.update_preview_callback(modal_interaction)
 
-            await inner_interaction.response.send_modal(TituloModal())
+            await inner_interaction.response.send_modal(
+                TituloModal(self.embed_data, self.update_preview)
+            )
 
         # Botão para definir a Descrição
         @discord.ui.button(label="Definir Descrição", style=discord.ButtonStyle.primary)
         async def define_descricao(self, inner_interaction: discord.Interaction, button: Button):
             class DescricaoModal(Modal, title="Definir Descrição"):
+                def __init__(self, embed_data, update_preview_callback):
+                    super().__init__()
+                    self.embed_data = embed_data
+                    self.update_preview_callback = update_preview_callback
+
                 descricao_input = TextInput(
                     label="Descrição do Embed",
                     placeholder="Digite a descrição",
@@ -189,24 +215,33 @@ async def embed(interaction: discord.Interaction):
                 )
 
                 async def on_submit(self, modal_interaction: discord.Interaction):
-                    self.view.embed_data["descricao"] = self.descricao_input.value
-                    await self.view.update_preview(modal_interaction)
+                    self.embed_data["descricao"] = self.descricao_input.value
+                    await self.update_preview_callback(modal_interaction)
 
-            await inner_interaction.response.send_modal(DescricaoModal())
+            await inner_interaction.response.send_modal(
+                DescricaoModal(self.embed_data, self.update_preview)
+            )
 
         # Botão para adicionar uma imagem
         @discord.ui.button(label="Adicionar Imagem", style=discord.ButtonStyle.primary)
         async def adiciona_imagem(self, inner_interaction: discord.Interaction, button: Button):
             class ImagemModal(Modal, title="Adicionar Imagem"):
+                def __init__(self, embed_data, update_preview_callback):
+                    super().__init__()
+                    self.embed_data = embed_data
+                    self.update_preview_callback = update_preview_callback
+
                 imagem_input = TextInput(
                     label="URL da imagem (opcional)", placeholder="Digite a URL (ou deixe vazio)", required=False
                 )
 
                 async def on_submit(self, modal_interaction: discord.Interaction):
-                    self.view.embed_data["imagem"] = self.imagem_input.value or None
-                    await self.view.update_preview(modal_interaction)
+                    self.embed_data["imagem"] = self.imagem_input.value or None
+                    await self.update_preview_callback(modal_interaction)
 
-            await inner_interaction.response.send_modal(ImagemModal())
+            await inner_interaction.response.send_modal(
+                ImagemModal(self.embed_data, self.update_preview)
+            )
 
         # Botão para cancelar o processo
         @discord.ui.button(label="Cancelar", style=discord.ButtonStyle.danger)
@@ -224,7 +259,7 @@ async def embed(interaction: discord.Interaction):
             # Verifica se os campos obrigatórios foram preenchidos
             if not self.embed_data["titulo"] or not self.embed_data["descricao"] or not self.embed_data["canal_envio"]:
                 await inner_interaction.response.send_message(
-                    "⚠️ Preencha título, descrição e defina um canal antes de enviar!", ephemeral=True
+                    "⚠️ Preencha o Título, Descrição e Canal antes de enviar!", ephemeral=True
                 )
                 return
 
@@ -237,7 +272,7 @@ async def embed(interaction: discord.Interaction):
             if self.embed_data["imagem"]:
                 final_embed.set_image(url=self.embed_data["imagem"])
 
-            # Tenta enviar o embed para o canal escolhido
+            # Envia para o canal definido
             canal = self.embed_data["canal_envio"]
             try:
                 await canal.send(embed=final_embed)
@@ -246,7 +281,7 @@ async def embed(interaction: discord.Interaction):
                 )
             except Exception:
                 await inner_interaction.response.send_message(
-                    "❌ Não foi possível enviar o embed. Verifique o canal e as permissões.", ephemeral=True
+                    "❌ Não foi possível enviar o embed. Verifique o canal e permissões.", ephemeral=True
                 )
             self.stop()
 
