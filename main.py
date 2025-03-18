@@ -173,7 +173,6 @@ async def embed(interaction: discord.Interaction):
                 self.embed_data["notificacao"] = None
                 self.embed_data["imagem"] = None
 
-                # Configurar canais de envio com base no template
                 if template_name == "event":
                     self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_EVENT)
                 elif template_name == "championship":
@@ -198,15 +197,24 @@ async def embed(interaction: discord.Interaction):
 
                 template_input = TextInput(
                     label="Escolha o Template",
-                    placeholder="Opções: event, announcement, championship ou patchnote",
+                    placeholder="1 (evento), 2 (anúncio), 3 (campeonato) ou 4 (patchnote)",
                     required=True,
                 )
 
                 async def on_submit(self, modal_interaction: discord.Interaction):
-                    template = self.template_input.value.strip().lower()
-                    if template not in ["event", "announcement", "championship", "patchnote"]:
+                    template_map = {
+                        "1": "event",
+                        "2": "announcement",
+                        "3": "championship",
+                        "4": "patchnote"
+                    }
+
+                    choice = self.template_input.value.strip()
+                    template = template_map.get(choice)
+
+                    if not template:
                         await modal_interaction.response.send_message(
-                            "❌ Template inválido. Escolha: event, announcement, championship ou patchnote.",
+                            "❌ Escolha inválida. Digite 1 (evento), 2 (anúncio), 3 (campeonato) ou 4 (patchnote).",
                             ephemeral=True,
                         )
                         return
@@ -232,6 +240,7 @@ async def embed(interaction: discord.Interaction):
                 notificacao_input = TextInput(
                     label="Mensagem de Notificação",
                     placeholder="Digite a mensagem de notificação.",
+                    max_length=1900,
                     required=True,
                 )
 
@@ -258,6 +267,7 @@ async def embed(interaction: discord.Interaction):
                 titulo_input = TextInput(
                     label="Título",
                     placeholder="Insira o Título",
+                    max_length=256,
                     required=True,
                 )
 
@@ -280,6 +290,8 @@ async def embed(interaction: discord.Interaction):
                 descricao_input = TextInput(
                     label="Descrição",
                     placeholder="Insira a Descrição",
+                    style=discord.TextStyle.long,
+                    max_length=4096,
                     required=True,
                 )
 
