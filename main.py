@@ -111,17 +111,15 @@ async def embed(interaction: discord.Interaction):
                 "canal_envio": None,
                 "imagem": None,
             }
-            self.template_content = None  # Armazena o template carregado
+            self.template_content = None
             self.update_buttons()
 
         def update_buttons(self):
-            # Habilita/desabilita botões baseado no template
             for child in self.children:
                 if child.label != "Definir Template":
                     child.disabled = self.embed_data["template"] is None
 
         async def update_preview(self, inner_interaction):
-            # Monta a pré-visualização
             preview_embed = discord.Embed(
                 title=self.embed_data["titulo"] or "Título do Embed",
                 description=self.embed_data["descricao"] or "Descrição do Embed",
@@ -130,7 +128,6 @@ async def embed(interaction: discord.Interaction):
             if self.embed_data["imagem"]:
                 preview_embed.set_image(url=self.embed_data["imagem"])
 
-            # Informações externas ao embed
             external_info = f"Canal de envio: {self.embed_data['canal_envio'].mention if self.embed_data['canal_envio'] else 'Nenhum'}\n"
             external_info += f"Mensagem de notificação: {self.embed_data['notificacao'] or 'Nenhuma'}"
 
@@ -141,12 +138,10 @@ async def embed(interaction: discord.Interaction):
             )
 
         async def load_template(self, template_name):
-            # Carrega o template do arquivo JSON correspondente
             try:
-                with open(f"{template_name}_template.json", "r", encoding="utf-8") as file:
+                with open(f"./embed_templates/{template_name}_template.json", "r", encoding="utf-8") as file:
                     self.template_content = json.load(file)
 
-                # Atualiza os campos do embed com base no template
                 self.embed_data["titulo"] = None
                 self.embed_data["descricao"] = None
                 self.embed_data["notificacao"] = None
@@ -160,11 +155,9 @@ async def embed(interaction: discord.Interaction):
                 raise Exception("❌ Template não encontrado.")
 
         async def apply_template(self):
-            # Aplica o template no EmbedView
             if not self.template_content:
                 return
 
-            # Substituição inicial no template (não persistente)
             embed_template = self.template_content["embeds"][0]
             self.embed_data["titulo"] = embed_template["description"].split("\n\n")[0].replace("# ", "").strip()
             self.embed_data["descricao"] = embed_template["description"].split("\n\n")[1].strip()
