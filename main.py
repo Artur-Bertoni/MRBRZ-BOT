@@ -118,18 +118,18 @@ async def send_embed(channel, title, description, thumbnail=None, color=0xFFF200
         await channel.send(embed=embed)
 
 
-async def send_role_change_embed(member, role_changed, is_addition):
+async def send_role_change_embed(member, role_changed, is_addition, trigger_to_action):
     channel = bot.get_channel(LOG_CHANNEL)
 
     if role_changed is None:
         action = "adicionado ao(à)" if is_addition else "removido do(a)"
         description = (
-            f"O cargo <@&{CARGO_BEYONDERS}> foi {action} para o(a) usuário(a) {member.mention}."
+            f"O cargo <@&{CARGO_BEYONDERS}> foi {action} usuário(a) {member.mention}."
         )
     else:
         action = "adicionado ao(à)" if is_addition else "removido do(a)"
         reason = (
-            f"após ter o cargo <@&{role_changed.id}> removido"
+            f"após ter o cargo <@&{role_changed.id}> {trigger_to_action}"
             if is_addition
             else f"após receber o cargo <@&{role_changed.id}>"
         )
@@ -177,12 +177,12 @@ async def update_member_roles(member):
             if role_beyonders in member.roles:
                 role_added = next((role for role in member.roles if role.id in monitored_roles), None)
                 await member.remove_roles(role_beyonders)
-                await send_role_change_embed(member, role_added, is_addition=True)
+                await send_role_change_embed(member, role_added, False, "adicionado")
         else:
             if role_beyonders not in member.roles:
                 role_removed = next((role for role in member.roles if role.id in monitored_roles), None)
                 await member.add_roles(role_beyonders)
-                await send_role_change_embed(member, role_removed, is_addition=False)
+                await send_role_change_embed(member, role_removed, True, "removido")
     except Exception as e:
         print(f"Erro ao atualizar o cargo de {member.display_name}: {e}")
 
