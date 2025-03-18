@@ -129,7 +129,6 @@ async def embed(
         await interaction.response.send_message(f"❌ Erro ao carregar o template: {e}", ephemeral=True)
         return
 
-    # Preencher as informações do template
     template_data["content"] = template_data["content"].replace("[Notificação]", notificacao)
     embed_data = template_data["embeds"][0]
     embed_data["description"] = embed_data["description"].replace("[Título]", titulo).replace("[Descrição]", descricao)
@@ -138,14 +137,12 @@ async def embed(
 
     embed = discord.Embed.from_dict(embed_data)
 
-    # Mostrando a pré-visualização inicial
     await interaction.response.send_message(
         content=f"**Pré-visualização do Embed:**\nAqui está como ficará sua mensagem no canal {canal.mention}:",
         embed=embed,
         ephemeral=True,
     )
 
-    # Classe para tratar as confirmações e edição
     class ConfirmView(View):
         def __init__(self, *, timeout=30):
             super().__init__(timeout=timeout)
@@ -174,12 +171,70 @@ async def embed(
             await interaction.response.send_modal(EditModal(template, notificacao, titulo, descricao, canal, imagem))
             self.stop()
 
-    # Criar uma instância de ConfirmView e utilizá-la
+    class EditModal(Modal, title="Editar Informações do Embed"):
+        def __init__(self, template, notificacao, titulo, descricao, canal):
+            super().__init__()
+            self.add_item(TextInput(label="Template", default=template, required=True))
+            self.add_item(
+                TextInput(label="Notificação", default=notificacao, required=True, style=discord.TextStyle.paragraph))
+            self.add_item(TextInput(label="Título", default=titulo, required=True))
+            self.add_item(
+                TextInput(label="Descrição", default=descricao, required=True, style=discord.TextStyle.paragraph))
+            self.add_item(TextInput(label="Canal ID", default=str(canal.id), required=True))
+
+        async def on_submit(self, interaction: discord.Interaction):
+            new_template = self.children[0].value
+            new_notificacao = self.children[1].value
+            new_titulo = self.children[2].value
+            new_descricao = self.children[3].value
+            new_canal_id = int(self.children[4].value)
+
+            new_canal = interaction.guild.get_channel(new_canal_id)
+
+            class EditImageView(View):
+                @discord.ui.button(label="Sim", style=discord.ButtonStyle.green)
+                async def edit_image_yes(self, inner_interaction: discord.Interaction, button: Button):
+                    await inner_interaction.response.send_modal(EditImageModal(
+                        new_template, new_notificacao, new_titulo, new_descricao, new_canal
+                    ))
+                    self.stop()
+
+                @discord.ui.button(label="Não", style=discord.ButtonStyle.red)
+                async def edit_image_no(self, inner_interaction: discord.Interaction, button: Button):
+                    await embed(
+                        inner_interaction, new_template, new_notificacao, new_titulo, new_descricao, new_canal, None
+                    )
+                    self.stop()
+
+            view = EditImageView()
+            await interaction.response.send_message(
+                "Deseja adicionar ou editar uma imagem para este embed?",
+                view=view,
+                ephemeral=True,
+            )
+
+    class EditImageModal(Modal, title="Editar Imagem do Embed"):
+        def __init__(self, template, notificacao, titulo, descricao, canal):
+            super().__init__()
+            self.add_item(TextInput(label="URL da Imagem", required=False, placeholder="Digite a URL da imagem"))
+            self.template = template
+            self.notificacao = notificacao
+            self.titulo = titulo
+            self.descricao = descricao
+            self.canal = canal
+
+        async def on_submit(self, interaction: discord.Interaction):
+            new_imagem = self.children[0].value if self.children[0].value else None
+
+            await embed(
+                interaction, self.template, self.notificacao, self.titulo, self.descricao, self.canal, new_imagem
+            )
+
     view = ConfirmView()
     await interaction.followup.send(
         content="Você deseja enviar este embed?",
         view=view,
-        ephemeral=True,  # Restringe a mensagem a quem solicitou
+        ephemeral=True,
     )
 
 
