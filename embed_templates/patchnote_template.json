@@ -4,7 +4,7 @@
   "embeds": [
     {
       "id": 501564444,
-      "description": "# Patch Note [NRO]\n1. **[Atualização 1]**\n    - [Descrição resumida]\n\n2. **[Atualização 2]**\n    - [Descrição resumida]\n\n3. **[Atualização 3]**\n    - [Descrição resumida]\n\n",
+      "description": "# [Título]\n\n[Descrição]\n",
       "color": 16773632,
       "footer": {
         "text": "Atenciosamente, seu dev lindo S2"
