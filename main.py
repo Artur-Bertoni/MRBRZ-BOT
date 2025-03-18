@@ -1,14 +1,13 @@
 #######################
 # Imports e Setup Inicial
 #######################
-import asyncio
 import json
+import os
+
 import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ui import Modal, TextInput, View, Button
-
-import os
 
 intents = discord.Intents.default()
 intents.guilds = True
@@ -130,6 +129,7 @@ async def embed(
         await interaction.response.send_message(f"❌ Erro ao carregar o template: {e}", ephemeral=True)
         return
 
+    # Preencher as informações do template
     template_data["content"] = template_data["content"].replace("[Notificação]", notificacao)
     embed_data = template_data["embeds"][0]
     embed_data["description"] = embed_data["description"].replace("[Título]", titulo).replace("[Descrição]", descricao)
@@ -138,12 +138,14 @@ async def embed(
 
     embed = discord.Embed.from_dict(embed_data)
 
+    # Mostrando a pré-visualização inicial
     await interaction.response.send_message(
         content=f"**Pré-visualização do Embed:**\nAqui está como ficará sua mensagem no canal {canal.mention}:",
         embed=embed,
         ephemeral=True,
     )
 
+    # Classe para tratar as confirmações e edição
     class ConfirmView(View):
         def __init__(self, *, timeout=30):
             super().__init__(timeout=timeout)
@@ -154,6 +156,7 @@ async def embed(
         async def confirm(self, interaction: discord.Interaction, button: Button):
             self.value = True
             self.action = "confirm"
+            await canal.send(embed=embed)
             await interaction.response.edit_message(content="✅ Embed enviado com sucesso!", view=None)
             self.stop()
 
@@ -169,35 +172,15 @@ async def embed(
             self.value = False
             self.action = "edit"
             await interaction.response.send_modal(EditModal(template, notificacao, titulo, descricao, canal, imagem))
-
             self.stop()
 
-    class EditModal(Modal, title="Editar Informações do Embed"):
-        def __init__(self, template, notificacao, titulo, descricao, canal, imagem):
-            super().__init__()
-            self.add_item(TextInput(label="Template", default=template, required=True))
-            self.add_item(
-                TextInput(label="Notificação", default=notificacao, required=True, style=discord.TextStyle.paragraph))
-            self.add_item(TextInput(label="Título", default=titulo, required=True))
-            self.add_item(
-                TextInput(label="Descrição", default=descricao, required=True, style=discord.TextStyle.paragraph))
-            self.add_item(TextInput(label="Canal ID", default=str(canal.id), required=True))
-            self.add_item(TextInput(label="Imagem (URL)", default=imagem if imagem else "", required=False))
-
-        async def on_submit(self, interaction: discord.Interaction):
-            new_template = self.children[0].value
-            new_notificacao = self.children[1].value
-            new_titulo = self.children[2].value
-            new_descricao = self.children[3].value
-            new_canal_id = int(self.children[4].value)
-            new_imagem = self.children[5].value if self.children[5].value else None
-
-            new_canal = interaction.guild.get_channel(new_canal_id)
-
-            await embed(interaction, new_template, new_notificacao, new_titulo, new_descricao, new_canal, new_imagem)
-
+    # Criar uma instância de ConfirmView e utilizá-la
     view = ConfirmView()
-    await interaction.followup.send("Você deseja enviar este embed?", view=view, ephemeral=True)
+    await interaction.followup.send(
+        content="Você deseja enviar este embed?",
+        view=view,
+        ephemeral=True,  # Restringe a mensagem a quem solicitou
+    )
 
 
 #######################
