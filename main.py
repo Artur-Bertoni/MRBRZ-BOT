@@ -104,7 +104,7 @@ async def on_member_update(before, after):
     if before.guild.id != GUILD_ID:
         return
 
-    await update_member_roles(after)
+    await update_member_roles(after, before_roles=before.roles, after_roles=after.roles)
 
 
 #######################
@@ -165,24 +165,36 @@ async def sync_commands():
             color=0xFF0000)
 
 
-async def update_member_roles(member):
+async def update_member_roles(member, before_roles=None, after_roles=None):
     monitored_roles = {CARGO_SUBS_TWITCH, CARGO_MEMBROS_YOUTUBE, CARGO_TESTE}
     role_beyonders = member.guild.get_role(CARGO_BEYONDERS)
 
     if not role_beyonders:
         return
 
+    if before_roles is None or after_roles is None:
+        before_roles = member.roles
+        after_roles = member.roles
+
+    added_roles = [role for role in after_roles if role not in before_roles]
+    removed_roles = [role for role in before_roles if role not in after_roles]
+
     try:
-        if any(role.id in monitored_roles for role in member.roles):
-            if role_beyonders in member.roles:
-                role_added = next((role for role in member.roles if role.id in monitored_roles), None)
+        if any(role.id in monitored_roles for role in after_roles):
+            if role_beyonders in after_roles:
+                role_added = next((role for role in added_roles if role.id in monitored_roles), None)
                 await member.remove_roles(role_beyonders)
-                await send_role_change_embed(member, role_added, False, "adicionado")
+                await send_role_change_embed(member, role_added, is_addition=False, trigger_to_action="adicionado")
         else:
-            if role_beyonders not in member.roles:
-                role_removed = next((role for role in member.roles if role.id in monitored_roles), None)
+            if role_beyonders not in after_roles:
+                role_removed = next((role for role in removed_roles if role.id in monitored_roles), None)
                 await member.add_roles(role_beyonders)
-                await send_role_change_embed(member, role_removed, True, "removido")
+                await send_role_change_embed(
+                    member,
+                    role_removed,
+                    is_addition=True,
+                    trigger_to_action="removido"
+                )
     except Exception as e:
         print(f"Erro ao atualizar o cargo de {member.display_name}: {e}")
 
