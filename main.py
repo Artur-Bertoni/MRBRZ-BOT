@@ -130,8 +130,13 @@ async def embed(interaction: discord.Interaction):
                         "notificacao") else "Definir Mensagem de Notificação *"
                 elif child.label == "Definir Template *":
                     continue
-                elif child.label in ["Cancelar", "Enviar"]:
+                elif child.label.__contains__("Cancelar"):
                     continue
+                elif child.label.__contains__("Enviar"):
+                    child.disabled = (self.embed_data["template"] is None
+                                      or self.embed_data["canal_envio"] is None
+                                      or self.embed_data["titulo"] is None
+                                      or self.embed_data["descricao"] is None)
                 elif child.label.__contains__("Imagem"):
                     child.label = "Editar Imagem" if self.embed_data.get("imagem") else "Adicionar Imagem"
                     child.disabled = self.embed_data["template"] is None
@@ -364,9 +369,10 @@ async def embed(interaction: discord.Interaction):
                 )
                 return
 
+            combined_description = f"# {self.embed_data['titulo']}\n\n{self.embed_data['descricao']}"
+
             final_embed = discord.Embed(
-                title=self.embed_data["titulo"],
-                description=self.embed_data["descricao"],
+                description=combined_description,
                 color=discord.Color.from_rgb(255, 242, 0),
             )
             if self.embed_data["imagem"]:
