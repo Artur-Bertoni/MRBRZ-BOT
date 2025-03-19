@@ -229,7 +229,6 @@ async def embed(interaction: discord.Interaction):
                         "3": "championship",
                         "4": "patchnote"
                     }
-
                     choice = self.template_input.value.strip()
                     template = template_map.get(choice)
 
@@ -243,15 +242,11 @@ async def embed(interaction: discord.Interaction):
                     try:
                         await self.embed_view.load_template(template)
                         await self.embed_view.update_preview(modal_interaction)
-
-                        await modal_interaction.response.send_message(
-                            f"✅ Template '{template}' carregado com sucesso!",
-                            ephemeral=True,
-                        )
                     except Exception as e:
-                        await modal_interaction.response.send_message(
-                            f"❌ Erro ao carregar o template: {str(e)}", ephemeral=True
-                        )
+                        if not modal_interaction.response.is_done():
+                            await modal_interaction.response.send_message(
+                                f"❌ Erro ao carregar o template: {str(e)}", ephemeral=True
+                            )
 
             await interaction.response.send_modal(TemplateModal(self))
 
@@ -304,13 +299,8 @@ async def embed(interaction: discord.Interaction):
 
                 async def on_submit(self, modal_interaction: discord.Interaction):
                     self.embed_view.embed_data["titulo"] = self.titulo_input.value
-                    await self.embed_view.update_preview(modal_interaction)
 
-                    await modal_interaction.response.send_message(
-                        "✅ Título editado com sucesso!" if self.embed_view.embed_data.get(
-                            "titulo") else "✅ Título adicionado com sucesso!",
-                        ephemeral=True
-                    )
+                    await self.embed_view.update_preview(modal_interaction)
 
             modal = TituloModal(self)
             if self.embed_data.get("titulo"):
@@ -336,13 +326,8 @@ async def embed(interaction: discord.Interaction):
 
                 async def on_submit(self, modal_interaction: discord.Interaction):
                     self.embed_view.embed_data["descricao"] = self.descricao_input.value
-                    await self.embed_view.update_preview(modal_interaction)
 
-                    await modal_interaction.response.send_message(
-                        "✅ Descrição editada com sucesso!" if self.embed_view.embed_data.get(
-                            "descricao") else "✅ Descrição adicionada com sucesso!",
-                        ephemeral=True,
-                    )
+                    await self.embed_view.update_preview(modal_interaction)
 
             modal = DescricaoModal(self)
             if self.embed_data.get("descricao"):
@@ -365,13 +350,8 @@ async def embed(interaction: discord.Interaction):
 
                 async def on_submit(self, modal_interaction: discord.Interaction):
                     self.embed_view.embed_data["imagem"] = self.imagem_input.value
-                    await self.embed_view.update_preview(modal_interaction)
 
-                    await modal_interaction.response.send_message(
-                        "✅ Imagem editada com sucesso!" if self.embed_view.embed_data.get(
-                            "imagem") else "✅ Imagem adicionada com sucesso!",
-                        ephemeral=True,
-                    )
+                    await self.embed_view.update_preview(modal_interaction)
 
             modal = ImagemModal(self)
             if self.embed_data.get("imagem"):
