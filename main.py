@@ -124,7 +124,7 @@ async def embed(interaction: discord.Interaction):
 
         def update_buttons(self):
             for child in self.children:
-                if child.label == "Definir Mensagem de Notificação *":
+                if child.label.__contains__("Mensagem de Notificação"):
                     child.disabled = self.embed_data["template"] == "patchnote" or self.embed_data["template"] is None
                     child.label = "Editar Mensagem de Notificação" if self.embed_data.get(
                         "notificacao") else "Definir Mensagem de Notificação *"
@@ -132,13 +132,13 @@ async def embed(interaction: discord.Interaction):
                     continue
                 elif child.label in ["Cancelar", "Enviar"]:
                     continue
-                elif "Imagem" in child.label:
+                elif child.label.__contains__("Imagem"):
                     child.label = "Editar Imagem" if self.embed_data.get("imagem") else "Adicionar Imagem"
                     child.disabled = self.embed_data["template"] is None
-                elif "Título" in child.label:
+                elif child.label.__contains__("Título"):
                     child.label = "Editar Título" if self.embed_data.get("titulo") else "Definir Título *"
                     child.disabled = self.embed_data["template"] is None
-                elif "Descrição" in child.label:
+                elif child.label.__contains__("Descrição"):
                     child.label = "Editar Descrição" if self.embed_data.get("descricao") else "Definir Descrição *"
                     child.disabled = self.embed_data["template"] is None
                 else:
@@ -253,7 +253,7 @@ async def embed(interaction: discord.Interaction):
         @discord.ui.button(label="Definir Mensagem de Notificação *", style=discord.ButtonStyle.primary, row=0)
         async def define_notificacao(self, interaction: discord.Interaction, button: Button):
             class NotificacaoModal(Modal, title="Editar Mensagem de Notificação" if self.embed_data.get(
-                "notificação") else "Definir Mensagem de Notificação"):
+                "notificacao") else "Definir Mensagem de Notificação"):
                 def __init__(self, embed_view):
                     super().__init__()
                     self.embed_view = embed_view
@@ -271,11 +271,8 @@ async def embed(interaction: discord.Interaction):
                         self.embed_view.embed_data["notificacao"] = content_template.replace(
                             "[Notificação]", self.notificacao_input.value
                         )
+
                     await self.embed_view.update_preview(modal_interaction)
-                    await modal_interaction.response.send_message(
-                        "✅ Mensagem de Notificação editada com sucesso!" if self.embed_view.embed_data.get(
-                            "notificacao") else "✅ Mensagem de Notificação adicionada com sucesso!", ephemeral=True
-                    )
 
             modal = NotificacaoModal(self)
             if self.embed_data["notificacao"]:
