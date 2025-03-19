@@ -123,28 +123,32 @@ async def embed(interaction: discord.Interaction):
             self.update_buttons()
 
         def update_buttons(self):
+            template_set = self.embed_data["template"] is not None
+            template_is_patchnote = self.embed_data["template"] == "patchnote"
+
             for child in self.children:
                 if child.label.__contains__("Mensagem de Notificação"):
-                    child.disabled = self.embed_data["template"] == "patchnote" or self.embed_data["template"] is None
+                    child.disabled = template_is_patchnote or not template_set
                     child.label = "Editar Mensagem de Notificação" if self.embed_data[
                                                                           "notificacao"] is not None else "Definir Mensagem de Notificação *"
-                elif child.label == "Definir Template *":
-                    continue
+                elif child.label.__contains__("Template"):
+                    child.label = "Alterar Template" if self.embed_data[
+                                                            "template"] is not None else "Definir Template *"
                 elif child.label.__contains__("Cancelar"):
                     continue
                 elif child.label.__contains__("Enviar"):
-                    child.disabled = self.embed_data["template"] is None or self.embed_data["titulo"] is None or \
-                                     self.embed_data["descricao"] is None
+                    child.disabled = not template_set or self.embed_data["titulo"] is None or self.embed_data[
+                        "descricao"] is None
                 elif child.label.__contains__("Imagem"):
                     child.label = "Editar Imagem" if self.embed_data["imagem"] is not None else "Adicionar Imagem"
-                    child.disabled = self.embed_data["template"] is None
+                    child.disabled = not template_set
                 elif child.label.__contains__("Título"):
                     child.label = "Editar Título" if self.embed_data["titulo"] is not None else "Definir Título *"
-                    child.disabled = self.embed_data["template"] is None
+                    child.disabled = not template_set
                 elif child.label.__contains__("Descrição"):
                     child.label = "Editar Descrição" if self.embed_data[
                                                             "descricao"] is not None else "Definir Descrição *"
-                    child.disabled = self.embed_data["template"] is None
+                    child.disabled = not template_set
 
         async def update_preview(self, interaction):
             if not self.template_content:
@@ -210,7 +214,8 @@ async def embed(interaction: discord.Interaction):
 
         @discord.ui.button(label="Definir Template *", style=discord.ButtonStyle.primary, row=0)
         async def define_template(self, interaction: discord.Interaction, button: Button):
-            class TemplateModal(Modal, title="Definir Template"):
+            class TemplateModal(Modal,
+                                title="Alterar Template" if self.embed_data.get("template") else "Definir Template"):
                 def __init__(self, embed_view):
                     super().__init__()
                     self.embed_view = embed_view
