@@ -28,17 +28,20 @@ if not TOKEN:
     exit()
 
 GUILD_ID = 1336381520977596518
+
 CARGO_SUBS_TWITCH = 1336425874177790012
 CARGO_MEMBROS_YOUTUBE = 1336425799359791174
+CARGO_BOT = 1338657713797857331
+CARGO_STAFF = 1336381521111814158
 CARGO_BEYONDERS = 1342108534350811206
 CARGO_TESTE = 1343947583260983338
-LOG_CHANNEL = 1341465591667753060
 
 TEMPLATES_DIR = "./embed_templates/"
 
+CHANNEL_LOG_APP = 1341465591667753060
 CHANNEL_EVENT = 1336666506146349078
-CHANNEL_CHAMPIONSHIP = 1342271005778776064
 CHANNEL_ANNOUNCEMENT = 1336666125257146440
+CHANNEL_CHAMPIONSHIP = 1342271005778776064
 CHANNEL_PATCHNOTE = 1351534926339506236
 
 
@@ -123,14 +126,20 @@ async def embed(interaction: discord.Interaction):
             for child in self.children:
                 if child.label == "Definir Mensagem de Notificação *":
                     child.disabled = self.embed_data["template"] == "patchnote" or self.embed_data["template"] is None
-                    child.label = "Editar Mensagem de Notificação" if self.embed_data[
-                        "notificacao"] else "Definir Mensagem de Notificação *"
+                    child.label = "Editar Mensagem de Notificação" if self.embed_data.get(
+                        "notificacao") else "Definir Mensagem de Notificação *"
                 elif child.label == "Definir Template *":
                     continue
                 elif child.label in ["Cancelar", "Enviar"]:
                     continue
-                elif child.label == "Adicionar Imagem" or child.label == "Editar Imagem":
+                elif "Imagem" in child.label:
                     child.label = "Editar Imagem" if self.embed_data.get("imagem") else "Adicionar Imagem"
+                    child.disabled = self.embed_data["template"] is None
+                elif "Título" in child.label:
+                    child.label = "Editar Título" if self.embed_data.get("titulo") else "Definir Título *"
+                    child.disabled = self.embed_data["template"] is None
+                elif "Descrição" in child.label:
+                    child.label = "Editar Descrição" if self.embed_data.get("descricao") else "Definir Descrição *"
                     child.disabled = self.embed_data["template"] is None
                 else:
                     key = child.label.split(" ")[-1].lower().strip("*")
@@ -170,7 +179,7 @@ async def embed(interaction: discord.Interaction):
             external_info += f"**Mensagem de notificação:** {self.embed_data['notificacao'] or 'Nenhuma'}"
 
             await interaction.response.edit_message(
-                content=f"Monte seu embed com as características abaixo:\n(Opções marcadas com '*' são obrigatórias)\n\n{external_info}",
+                content=f"Monte seu embed com as características abaixo:\n(Opções marcadas com * são obrigatórias)\n\n{external_info}",
                 embed=preview_embed,
                 view=self,
             )
@@ -278,16 +287,16 @@ async def embed(interaction: discord.Interaction):
 
             await interaction.response.send_modal(modal)
 
-        @discord.ui.button(label="Definir Título *", style=discord.ButtonStyle.primary, row=1)
+        @discord.ui.button(label="Definir Título *", style=discord.ButtonStyle.primary, row=0)
         async def define_titulo(self, interaction: discord.Interaction, button: Button):
-            class TituloModal(Modal, title="Editar Título"):
-                def __init__(self, embed_view: "EmbedView"):
+            class TituloModal(Modal, title="Editar Título" if self.embed_data.get("titulo") else "Definir Título"):
+                def __init__(self, embed_view):
                     super().__init__()
                     self.embed_view = embed_view
 
                 titulo_input = TextInput(
                     label="Título",
-                    placeholder="Insira o título",
+                    placeholder="Digite o título do embed.",
                     max_length=256,
                     required=True,
                 )
@@ -296,30 +305,28 @@ async def embed(interaction: discord.Interaction):
                     self.embed_view.embed_data["titulo"] = self.titulo_input.value
                     await self.embed_view.update_preview(modal_interaction)
                     await modal_interaction.response.send_message(
-                        "✅ Título editado com sucesso!", ephemeral=True
-                    )
-
-                async def on_error(self, interaction: discord.Interaction, error: Exception):
-                    await interaction.response.send_message(
-                        f"❌ Ocorreu um erro ao editar o título: {str(error)}", ephemeral=True
+                        "✅ Título editado com sucesso!" if self.embed_view.embed_data.get(
+                            "titulo") else "✅ Título adicionado com sucesso!",
+                        ephemeral=True,
                     )
 
             modal = TituloModal(self)
-            if self.embed_data["titulo"]:
+            if self.embed_data.get("titulo"):
                 modal.titulo_input.default = self.embed_data["titulo"]
 
             await interaction.response.send_modal(modal)
 
         @discord.ui.button(label="Definir Descrição *", style=discord.ButtonStyle.primary, row=1)
         async def define_descricao(self, interaction: discord.Interaction, button: Button):
-            class DescricaoModal(Modal, title="Editar Descrição"):
-                def __init__(self, embed_view: "EmbedView"):
+            class DescricaoModal(Modal,
+                                 title="Editar Descrição" if self.embed_data.get("descricao") else "Definir Descrição"):
+                def __init__(self, embed_view):
                     super().__init__()
                     self.embed_view = embed_view
 
                 descricao_input = TextInput(
                     label="Descrição",
-                    placeholder="Insira a descrição",
+                    placeholder="Digite a descrição do embed.",
                     style=discord.TextStyle.long,
                     max_length=4000,
                     required=True,
@@ -329,16 +336,13 @@ async def embed(interaction: discord.Interaction):
                     self.embed_view.embed_data["descricao"] = self.descricao_input.value
                     await self.embed_view.update_preview(modal_interaction)
                     await modal_interaction.response.send_message(
-                        "✅ Descrição editada com sucesso!", ephemeral=True
-                    )
-
-                async def on_error(self, interaction: discord.Interaction, error: Exception):
-                    await interaction.response.send_message(
-                        f"❌ Ocorreu um erro ao editar a descrição: {str(error)}", ephemeral=True
+                        "✅ Descrição editada com sucesso!" if self.embed_view.embed_data.get(
+                            "descricao") else "✅ Descrição adicionada com sucesso!",
+                        ephemeral=True,
                     )
 
             modal = DescricaoModal(self)
-            if self.embed_data["descricao"]:
+            if self.embed_data.get("descricao"):
                 modal.descricao_input.default = self.embed_data["descricao"]
 
             await interaction.response.send_modal(modal)
@@ -451,7 +455,7 @@ async def send_embed(channel, title, description, thumbnail=None, color=0xFFF200
 
 
 async def send_role_change_embed(member, role_changed, is_addition, trigger_to_action):
-    channel = bot.get_channel(LOG_CHANNEL)
+    channel = bot.get_channel(CHANNEL_LOG_APP)
 
     if role_changed is None:
         action = "adicionado ao(à)" if is_addition else "removido do(a)"
@@ -485,20 +489,20 @@ async def sync_commands():
         log_message = "Comandos sincronizados com sucesso!\n"
         log_message += f"Comandos ativos: {', '.join(current_commands)}" if current_commands else "Nenhum comando ativo no momento."
 
-        await send_embed(bot.get_channel(LOG_CHANNEL),
+        await send_embed(bot.get_channel(CHANNEL_LOG_APP),
                          title="**Comandos Sincronizados**",
                          description=log_message)
 
     except Exception as e:
         await send_embed(
-            bot.get_channel(LOG_CHANNEL),
+            bot.get_channel(CHANNEL_LOG_APP),
             title="**Erro na Sincronização**",
             description=f"Ocorreu um erro ao sincronizar os comandos: {str(e)}",
             color=0xFF0000)
 
 
 async def update_member_roles(member, before_roles=None, after_roles=None):
-    monitored_roles = {CARGO_SUBS_TWITCH, CARGO_MEMBROS_YOUTUBE, CARGO_TESTE}
+    monitored_roles = {CARGO_SUBS_TWITCH, CARGO_MEMBROS_YOUTUBE, CARGO_BOT, CARGO_STAFF}
     role_beyonders = member.guild.get_role(CARGO_BEYONDERS)
 
     if not role_beyonders:
