@@ -133,7 +133,7 @@ async def embed(interaction: discord.Interaction):
                 elif child.label.__contains__("Cancelar"):
                     continue
                 elif child.label.__contains__("Enviar"):
-                    child.disabled = self.embed_data["template"] is None or self.embed_data["canal_envio"] is None or \
+                    child.disabled = self.embed_data["template"] is None or \
                                      self.embed_data["titulo"] is None or self.embed_data["descricao"] is None or \
                                      self.embed_data["notificacao"] is None
                 elif child.label.__contains__("Imagem"):
