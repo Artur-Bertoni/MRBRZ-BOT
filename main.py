@@ -123,17 +123,18 @@ async def embed(interaction: discord.Interaction):
             self.update_buttons()
 
         def update_buttons(self):
-            print(self.embed_data)
             for child in self.children:
                 if child.label.__contains__("Mensagem de Notificação"):
                     child.disabled = self.embed_data["template"] == "patchnote" or self.embed_data["template"] is None
-                    child.label = "Editar Mensagem de Notificação" if self.embed_data["notificacao"] is not None else "Definir Mensagem de Notificação *"
+                    child.label = "Editar Mensagem de Notificação" if self.embed_data[
+                                                                          "notificacao"] is not None else "Definir Mensagem de Notificação *"
                 elif child.label == "Definir Template *":
                     continue
                 elif child.label.__contains__("Cancelar"):
                     continue
                 elif child.label.__contains__("Enviar"):
-                    child.disabled = self.embed_data["template"] is None or self.embed_data["titulo"] is None or self.embed_data["descricao"] is None
+                    child.disabled = self.embed_data["template"] is None or self.embed_data["titulo"] is None or \
+                                     self.embed_data["descricao"] is None
                 elif child.label.__contains__("Imagem"):
                     child.label = "Editar Imagem" if self.embed_data["imagem"] is not None else "Adicionar Imagem"
                     child.disabled = self.embed_data["template"] is None
@@ -141,7 +142,8 @@ async def embed(interaction: discord.Interaction):
                     child.label = "Editar Título" if self.embed_data["titulo"] is not None else "Definir Título *"
                     child.disabled = self.embed_data["template"] is None
                 elif child.label.__contains__("Descrição"):
-                    child.label = "Editar Descrição" if self.embed_data["descricao"] is not None else "Definir Descrição *"
+                    child.label = "Editar Descrição" if self.embed_data[
+                                                            "descricao"] is not None else "Definir Descrição *"
                     child.disabled = self.embed_data["template"] is None
 
         async def update_preview(self, interaction):
@@ -238,6 +240,7 @@ async def embed(interaction: discord.Interaction):
 
                     try:
                         await self.embed_view.load_template(template)
+                        self.embed_view.update_buttons()
                         await self.embed_view.update_preview(modal_interaction)
                     except Exception as e:
                         if not modal_interaction.response.is_done():
@@ -269,6 +272,7 @@ async def embed(interaction: discord.Interaction):
                             "[Notificação]", self.notificacao_input.value
                         )
 
+                    self.embed_view.update_buttons()
                     await self.embed_view.update_preview(modal_interaction)
 
             modal = NotificacaoModal(self)
@@ -293,7 +297,7 @@ async def embed(interaction: discord.Interaction):
 
                 async def on_submit(self, modal_interaction: discord.Interaction):
                     self.embed_view.embed_data["titulo"] = self.titulo_input.value
-
+                    self.embed_view.update_buttons()
                     await self.embed_view.update_preview(modal_interaction)
 
             modal = TituloModal(self)
@@ -320,7 +324,7 @@ async def embed(interaction: discord.Interaction):
 
                 async def on_submit(self, modal_interaction: discord.Interaction):
                     self.embed_view.embed_data["descricao"] = self.descricao_input.value
-
+                    self.embed_view.update_buttons()
                     await self.embed_view.update_preview(modal_interaction)
 
             modal = DescricaoModal(self)
@@ -344,7 +348,7 @@ async def embed(interaction: discord.Interaction):
 
                 async def on_submit(self, modal_interaction: discord.Interaction):
                     self.embed_view.embed_data["imagem"] = self.imagem_input.value
-
+                    self.embed_view.update_buttons()
                     await self.embed_view.update_preview(modal_interaction)
 
             modal = ImagemModal(self)
