@@ -127,28 +127,22 @@ async def embed(interaction: discord.Interaction):
             for child in self.children:
                 if child.label.__contains__("Mensagem de Notificação"):
                     child.disabled = self.embed_data["template"] == "patchnote" or self.embed_data["template"] is None
-                    child.label = "Editar Mensagem de Notificação" if self.embed_data.get(
-                        "notificacao") else "Definir Mensagem de Notificação *"
+                    child.label = "Editar Mensagem de Notificação" if self.embed_data["notificacao"] is not None else "Definir Mensagem de Notificação *"
                 elif child.label == "Definir Template *":
                     continue
                 elif child.label.__contains__("Cancelar"):
                     continue
                 elif child.label.__contains__("Enviar"):
-                    child.disabled = self.embed_data.get("template") or self.embed_data.get("titulo") or self.embed_data.get("descricao")
+                    child.disabled = self.embed_data["template"] is None or self.embed_data["titulo"] is None or self.embed_data["descricao"] is None
                 elif child.label.__contains__("Imagem"):
-                    child.label = "Editar Imagem" if self.embed_data.get("imagem") else "Adicionar Imagem"
-                    child.disabled = self.embed_data.get("template")
+                    child.label = "Editar Imagem" if self.embed_data["imagem"] is not None else "Adicionar Imagem"
+                    child.disabled = self.embed_data["template"] is None
                 elif child.label.__contains__("Título"):
-                    child.label = "Editar Título" if self.embed_data.get("titulo") else "Definir Título *"
-                    child.disabled = self.embed_data.get("template")
+                    child.label = "Editar Título" if self.embed_data["titulo"] is not None else "Definir Título *"
+                    child.disabled = self.embed_data["template"] is None
                 elif child.label.__contains__("Descrição"):
-                    child.label = "Editar Descrição" if self.embed_data.get("descricao") else "Definir Descrição *"
-                    child.disabled = self.embed_data.get("template")
-                else:
-                    key = child.label.split(" ")[-1].lower().strip("*")
-                    child.label = f"Editar {key.capitalize()}" if self.embed_data.get(
-                        key) else f"Definir {key.capitalize()} *"
-                    child.disabled = self.embed_data.get("template")
+                    child.label = "Editar Descrição" if self.embed_data["descricao"] is not None else "Definir Descrição *"
+                    child.disabled = self.embed_data["template"] is None
 
         async def update_preview(self, interaction):
             if not self.template_content:
