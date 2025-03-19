@@ -123,7 +123,19 @@ async def embed(interaction: discord.Interaction):
             for child in self.children:
                 if child.label == "Definir Mensagem de Notificação *":
                     child.disabled = self.embed_data["template"] == "patchnote" or self.embed_data["template"] is None
-                elif child.label != "Definir Template *":
+                    child.label = "Editar Mensagem de Notificação" if self.embed_data[
+                        "notificacao"] else "Definir Mensagem de Notificação *"
+                elif child.label == "Definir Template *":
+                    continue
+                elif child.label in ["Cancelar", "Enviar"]:
+                    continue
+                elif child.label == "Adicionar Imagem" or child.label == "Editar Imagem":
+                    child.label = "Editar Imagem" if self.embed_data.get("imagem") else "Adicionar Imagem"
+                    child.disabled = self.embed_data["template"] is None
+                else:
+                    key = child.label.split(" ")[-1].lower().strip("*")
+                    child.label = f"Editar {key.capitalize()}" if self.embed_data.get(
+                        key) else f"Definir {key.capitalize()} *"
                     child.disabled = self.embed_data["template"] is None
 
         async def update_preview(self, interaction):
@@ -252,21 +264,30 @@ async def embed(interaction: discord.Interaction):
                         )
                     await self.embed_view.update_preview(modal_interaction)
                     await modal_interaction.response.send_message(
-                        "✅ Mensagem de Notificação definida com sucesso!", ephemeral=True
+                        "✅ Mensagem de Notificação editada com sucesso!", ephemeral=True
                     )
 
-            await interaction.response.send_modal(NotificacaoModal(self))
+                async def on_error(self, interaction: discord.Interaction, error: Exception):
+                    await interaction.response.send_message(
+                        f"❌ Ocorreu um erro ao editar a mensagem de notificação: {str(error)}", ephemeral=True
+                    )
+
+            modal = NotificacaoModal(self)
+            if self.embed_data["notificacao"]:
+                modal.notificacao_input.default = self.embed_data["notificacao"]
+
+            await interaction.response.send_modal(modal)
 
         @discord.ui.button(label="Definir Título *", style=discord.ButtonStyle.primary, row=1)
         async def define_titulo(self, interaction: discord.Interaction, button: Button):
-            class TituloModal(Modal, title="Definir Título"):
-                def __init__(self, embed_view):
+            class TituloModal(Modal, title="Editar Título"):
+                def __init__(self, embed_view: "EmbedView"):
                     super().__init__()
                     self.embed_view = embed_view
 
                 titulo_input = TextInput(
                     label="Título",
-                    placeholder="Insira o Título",
+                    placeholder="Insira o título",
                     max_length=256,
                     required=True,
                 )
@@ -275,23 +296,32 @@ async def embed(interaction: discord.Interaction):
                     self.embed_view.embed_data["titulo"] = self.titulo_input.value
                     await self.embed_view.update_preview(modal_interaction)
                     await modal_interaction.response.send_message(
-                        f"✅ Título definido com sucesso!", ephemeral=True
+                        "✅ Título editado com sucesso!", ephemeral=True
                     )
 
-            await interaction.response.send_modal(TituloModal(self))
+                async def on_error(self, interaction: discord.Interaction, error: Exception):
+                    await interaction.response.send_message(
+                        f"❌ Ocorreu um erro ao editar o título: {str(error)}", ephemeral=True
+                    )
+
+            modal = TituloModal(self)
+            if self.embed_data["titulo"]:
+                modal.titulo_input.default = self.embed_data["titulo"]
+
+            await interaction.response.send_modal(modal)
 
         @discord.ui.button(label="Definir Descrição *", style=discord.ButtonStyle.primary, row=1)
         async def define_descricao(self, interaction: discord.Interaction, button: Button):
-            class DescricaoModal(Modal, title="Definir Descrição"):
-                def __init__(self, embed_view):
+            class DescricaoModal(Modal, title="Editar Descrição"):
+                def __init__(self, embed_view: "EmbedView"):
                     super().__init__()
                     self.embed_view = embed_view
 
                 descricao_input = TextInput(
                     label="Descrição",
-                    placeholder="Insira a Descrição",
+                    placeholder="Insira a descrição",
                     style=discord.TextStyle.long,
-                    max_length=4096,
+                    max_length=4000,
                     required=True,
                 )
 
@@ -299,14 +329,23 @@ async def embed(interaction: discord.Interaction):
                     self.embed_view.embed_data["descricao"] = self.descricao_input.value
                     await self.embed_view.update_preview(modal_interaction)
                     await modal_interaction.response.send_message(
-                        f"✅ Descrição definida com sucesso!", ephemeral=True
+                        "✅ Descrição editada com sucesso!", ephemeral=True
                     )
 
-            await interaction.response.send_modal(DescricaoModal(self))
+                async def on_error(self, interaction: discord.Interaction, error: Exception):
+                    await interaction.response.send_message(
+                        f"❌ Ocorreu um erro ao editar a descrição: {str(error)}", ephemeral=True
+                    )
+
+            modal = DescricaoModal(self)
+            if self.embed_data["descricao"]:
+                modal.descricao_input.default = self.embed_data["descricao"]
+
+            await interaction.response.send_modal(modal)
 
         @discord.ui.button(label="Adicionar Imagem", style=discord.ButtonStyle.primary, row=2)
         async def adiciona_imagem(self, interaction: discord.Interaction, button: Button):
-            class ImagemModal(Modal, title="Adicionar Imagem"):
+            class ImagemModal(Modal, title="Editar Imagem" if self.embed_data.get("imagem") else "Adicionar Imagem"):
                 def __init__(self, embed_view):
                     super().__init__()
                     self.embed_view = embed_view
@@ -321,10 +360,16 @@ async def embed(interaction: discord.Interaction):
                     self.embed_view.embed_data["imagem"] = self.imagem_input.value
                     await self.embed_view.update_preview(modal_interaction)
                     await modal_interaction.response.send_message(
-                        "✅ Imagem adicionada com sucesso!", ephemeral=True
+                        "✅ Imagem editada com sucesso!" if self.embed_view.embed_data.get(
+                            "imagem") else "✅ Imagem adicionada com sucesso!",
+                        ephemeral=True
                     )
 
-            await interaction.response.send_modal(ImagemModal(self))
+            modal = ImagemModal(self)
+            if self.embed_data.get("imagem"):
+                modal.imagem_input.default = self.embed_data["imagem"]
+
+            await interaction.response.send_modal(modal)
 
         @discord.ui.button(label="Enviar", style=discord.ButtonStyle.success, row=3)
         async def enviar(self, interaction: discord.Interaction, button: Button):
