@@ -376,6 +376,13 @@ async def embed(interaction: discord.Interaction):
                 description=combined_description,
                 color=discord.Color.from_rgb(255, 242, 0),
             )
+
+            if self.template_content and "footer" in self.template_content["embeds"][0]:
+                template_footer = self.template_content["embeds"][0]["footer"]
+                final_embed.set_footer(text=template_footer.get("text", ""))
+            else:
+                final_embed.set_footer(text="Atenciosamente, a equipe Marvel Rivals Brazuka")
+
             if self.embed_data["imagem"]:
                 final_embed.set_image(url=self.embed_data["imagem"])
 
@@ -473,7 +480,7 @@ async def sync_commands():
         bot.tree.copy_global_to(guild=guild)
         all_commands = await bot.tree.sync(guild=guild)
 
-        current_commands = [f"`{cmd.name}`" for cmd in all_commands]
+        current_commands = [f"`/{cmd.name}`" for cmd in all_commands]
         log_message = "Comandos sincronizados com sucesso!\n"
         log_message += f"Comandos ativos: {', '.join(current_commands)}" if current_commands else "Nenhum comando ativo no momento."
 
