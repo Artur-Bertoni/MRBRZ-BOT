@@ -110,7 +110,7 @@ async def atualizar_cargos(interaction: discord.Interaction):
 async def embed(interaction: discord.Interaction):
     class EmbedView(View):
         def __init__(self):
-            super().__init__()
+            super().__init__(timeout=None)
             self.embed_data = {
                 "template": None,
                 "notificacao": None,
@@ -121,6 +121,14 @@ async def embed(interaction: discord.Interaction):
             }
             self.template_content = None
             self.update_buttons()
+
+        async def on_timeout(self):
+            for item in self.children:
+                item.disabled = True
+            try:
+                await self.message.edit(view=self)
+            except discord.NotFound:
+                pass
 
         def update_buttons(self):
             template_set = self.embed_data["template"] is not None
