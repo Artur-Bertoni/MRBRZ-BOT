@@ -120,6 +120,7 @@ async def embed(interaction: discord.Interaction):
                 "imagem": None,
             }
             self.template_content = None
+            self.message = None
             self.update_buttons()
 
         async def on_timeout(self):
@@ -424,6 +425,7 @@ async def embed(interaction: discord.Interaction):
             )
             self.stop()
 
+    view = EmbedView()
     await interaction.response.send_message(
         content="Monte seu embed com as características abaixo:",
         embed=discord.Embed(
@@ -431,9 +433,10 @@ async def embed(interaction: discord.Interaction):
             description="Aqui você pode pré-visualizar o embed conforme ajusta os campos abaixo.",
             color=discord.Color.from_rgb(255, 242, 0),
         ),
-        view=EmbedView(),
+        view=view,
         ephemeral=True,
     )
+    view.message = await interaction.original_response()
 
 
 #######################
