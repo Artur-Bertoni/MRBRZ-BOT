@@ -1,27 +1,25 @@
-#######################
-# Imports e Setup Inicial
-#######################
 import json
+import io
 import os
 
 import discord
 from discord.ext import commands
 from discord.ui import View, Button, Modal, TextInput
 
+# ======== Setup Inicial ========
 intents = discord.Intents.default()
 intents.guilds = True
 intents.guild_messages = True
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix="/",
-                   intents=intents,
-                   application_id=os.getenv("APPLICATION_ID"))
+bot = commands.Bot(
+    command_prefix="/",
+    intents=intents,
+    application_id=os.getenv("APPLICATION_ID")
+)
 
-#######################
-# Configurações e Variáveis
-#######################
-
+# ======== Configurações e Variáveis ========
 TOKEN = os.getenv("TOKEN")
 if not TOKEN:
     print("Erro: TOKEN não encontrado nos secrets.")
@@ -29,42 +27,53 @@ if not TOKEN:
 
 GUILD_ID = 1336381520977596518
 
-CARGO_SUBS_TWITCH = 1336425874177790012
-CARGO_MEMBROS_YOUTUBE = 1336425799359791174
-CARGO_BOT = 1338657713797857331
-CARGO_STAFF = 1336381521111814158
-CARGO_BEYONDERS = 1342108534350811206
-CARGO_TESTE = 1343947583260983338
+CARGO_SUBS_TWITCH       = 1336425874177790012
+CARGO_MEMBROS_YOUTUBE   = 1336425799359791174
+CARGO_BOT               = 1338657713797857331
+CARGO_STAFF             = 1336381521111814158
+CARGO_BEYONDERS         = 1342108534350811206
+CARGO_TESTE             = 1343947583260983338
 
-TEMPLATES_DIR = "./embed_templates/"
+TEMPLATES_DIR           = "./embed_templates/"
 
-CHANNEL_LOG_APP = 1341465591667753060
-CHANNEL_EVENT = 1336666506146349078
-CHANNEL_ANNOUNCEMENT = 1336666125257146440
-CHANNEL_CHAMPIONSHIP = 1342271005778776064
-CHANNEL_PATCHNOTE = 1351534926339506236
+CHANNEL_LOG_APP         = 1341465591667753060
+CHANNEL_EVENT           = 1336666506146349078
+CHANNEL_ANNOUNCEMENT    = 1336666125257146440
+CHANNEL_CHAMPIONSHIP    = 1342271005778776064
+CHANNEL_PATCHNOTE       = 1351534926339506236
+
+# Canal onde o JSON será salvo/atualizado
+SAVE_CHANNEL_ID         = 1370414840476078092
 
 
-#######################
-# Comandos
-#######################
+# ======== Comandos ========
+
 @bot.tree.command(
     name="ping",
     description="Mostra a latência do bot",
-    guild=discord.Object(id=GUILD_ID))
+    guild=discord.Object(id=GUILD_ID)
+)
 async def ping(interaction: discord.Interaction):
     if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("Você não tem permissão para usar este comando.", ephemeral=True)
+        await interaction.response.send_message(
+            "Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
         return
 
     websocket_latency = round(bot.latency * 1000)
     await interaction.response.send_message("Calculando latência...")
-    api_latency = round((discord.utils.utcnow() - interaction.created_at).total_seconds() * 1000)
+    api_latency = round(
+        (discord.utils.utcnow() - interaction.created_at).total_seconds() * 1000
+    )
 
     await send_embed(
         interaction.channel,
         title="🏓 Pong!",
-        description=f"**Gateway (WebSocket):** `{websocket_latency}ms`\n**API:** `{api_latency}ms`"
+        description=(
+            f"**Gateway (WebSocket):** `{websocket_latency}ms`\n"
+            f"**API:** `{api_latency}ms`"
+        )
     )
     await interaction.delete_original_response()
 
@@ -72,11 +81,13 @@ async def ping(interaction: discord.Interaction):
 @bot.tree.command(
     name="atualizar_cargos",
     description="Atualiza manualmente os cargos de todos os membros do servidor.",
-    guild=discord.Object(id=GUILD_ID))
+    guild=discord.Object(id=GUILD_ID)
+)
 async def atualizar_cargos(interaction: discord.Interaction):
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
-            "Você não tem permissão para usar este comando.", ephemeral=True
+            "Você não tem permissão para usar este comando.",
+            ephemeral=True
         )
         return
 
@@ -91,7 +102,6 @@ async def atualizar_cargos(interaction: discord.Interaction):
         return
 
     updated_count = 0
-
     for member in guild.members:
         if not member.bot:
             await update_member_roles(member)
@@ -108,6 +118,13 @@ async def atualizar_cargos(interaction: discord.Interaction):
     guild=discord.Object(id=GUILD_ID),
 )
 async def embed(interaction: discord.Interaction):
+    # View para o botão de download do JSON
+    class DownloadView(View):
+        def __init__(self, url: str):
+            super().__init__(timeout=None)
+            self.add_item(Button(label="Download JSON", style=discord.ButtonStyle.link, url=url))
+
+    # View principal de criação de embed
     class EmbedView(View):
         def __init__(self, *, timeout=300):
             super().__init__(timeout=timeout)
@@ -120,6 +137,7 @@ async def embed(interaction: discord.Interaction):
                 "imagem": None,
             }
             self.template_content = None
+            self.json_message = None     # Mensagem onde o JSON será salvo/atualizado
             self.update_buttons()
 
         def update_buttons(self):
@@ -127,96 +145,55 @@ async def embed(interaction: discord.Interaction):
             template_is_patchnote = self.embed_data["template"] == "patchnote"
 
             for child in self.children:
-                if child.label.__contains__("Mensagem de Notificação"):
+                if "Mensagem de Notificação" in child.label:
                     child.disabled = template_is_patchnote or not template_set
-                    child.label = "Editar Mensagem de Notificação" if self.embed_data[
-                                                                          "notificacao"] is not None else "Definir Mensagem de Notificação *"
-                elif child.label.__contains__("Template"):
-                    child.label = "Alterar Template" if self.embed_data[
-                                                            "template"] is not None else "Definir Template *"
-                elif child.label.__contains__("Cancelar"):
-                    continue
-                elif child.label.__contains__("Enviar"):
-                    child.disabled = not template_set or self.embed_data["titulo"] is None or self.embed_data[
-                        "descricao"] is None
-                elif child.label.__contains__("Imagem"):
-                    child.label = "Editar Imagem" if self.embed_data["imagem"] is not None else "Adicionar Imagem"
+                    child.label = (
+                        "Editar Mensagem de Notificação"
+                        if self.embed_data["notificacao"]
+                        else "Definir Mensagem de Notificação *"
+                    )
+                elif "Template" in child.label:
+                    child.label = (
+                        "Alterar Template"
+                        if self.embed_data["template"]
+                        else "Definir Template *"
+                    )
+                elif "Enviar" in child.label:
+                    child.disabled = (
+                        not template_set
+                        or self.embed_data["titulo"] is None
+                        or self.embed_data["descricao"] is None
+                    )
+                elif "Imagem" in child.label:
+                    child.label = (
+                        "Editar Imagem"
+                        if self.embed_data["imagem"]
+                        else "Adicionar Imagem"
+                    )
                     child.disabled = not template_set
-                elif child.label.__contains__("Título"):
-                    child.label = "Editar Título" if self.embed_data["titulo"] is not None else "Definir Título *"
+                elif "Título" in child.label:
+                    child.label = (
+                        "Editar Título"
+                        if self.embed_data["titulo"]
+                        else "Definir Título *"
+                    )
                     child.disabled = not template_set
-                elif child.label.__contains__("Descrição"):
-                    child.label = "Editar Descrição" if self.embed_data[
-                                                            "descricao"] is not None else "Definir Descrição *"
+                elif "Descrição" in child.label:
+                    child.label = (
+                        "Editar Descrição"
+                        if self.embed_data["descricao"]
+                        else "Definir Descrição *"
+                    )
                     child.disabled = not template_set
+                elif "Salvar JSON" in child.label:
+                    child.disabled = not template_set
+                # Cancelar nunca muda, e os demais botões já cobertos acima
 
-        async def update_preview(self, interaction):
-            if not self.template_content:
-                preview_embed = discord.Embed(
-                    title=self.embed_data["titulo"] or "Título do Embed",
-                    description=self.embed_data["descricao"] or "Descrição do Embed",
-                    color=discord.Color.from_rgb(255, 242, 0),
-                )
-                if self.embed_data["imagem"]:
-                    preview_embed.set_image(url=self.embed_data["imagem"])
-            else:
-                template_embed = self.template_content["embeds"][0]
-                preview_embed = discord.Embed.from_dict(template_embed)
-
-                preview_embed.description = template_embed["description"]
-                preview_embed.description = preview_embed.description.replace(
-                    "[Título]", self.embed_data["titulo"] or "[Título]"
-                )
-                preview_embed.description = preview_embed.description.replace(
-                    "[Descrição]", self.embed_data["descricao"] or "[Descrição]"
-                )
-                if self.embed_data["imagem"]:
-                    preview_embed.set_image(url=self.embed_data["imagem"])
-
-                if "footer" in template_embed and "text" in template_embed["footer"]:
-                    preview_embed.set_footer(text=template_embed["footer"]["text"])
-                else:
-                    preview_embed.set_footer(text="Atenciosamente, a equipe Marvel Rivals Brazuka")
-
-            external_info = f"**Canal de envio:** {self.embed_data['canal_envio'].mention if self.embed_data['canal_envio'] else 'Nenhum'}\n"
-            external_info += f"**Mensagem de notificação:** {self.embed_data['notificacao'] or 'Nenhuma'}"
-
-            await interaction.response.edit_message(
-                content=f"Monte seu embed com as características abaixo:\n(Opções marcadas com * são obrigatórias)\n\n{external_info}",
-                embed=preview_embed,
-                view=self,
-            )
-
-        async def load_template(self, template_name):
-            try:
-                with open(f"{TEMPLATES_DIR}{template_name}_template.json", "r", encoding="utf-8") as file:
-                    self.template_content = json.load(file)
-                self.embed_data["template"] = template_name
-                self.embed_data["titulo"] = None
-                self.embed_data["descricao"] = None
-                self.embed_data["notificacao"] = None
-                self.embed_data["imagem"] = None
-
-                if template_name == "event":
-                    self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_EVENT)
-                elif template_name == "championship":
-                    self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_CHAMPIONSHIP)
-                elif template_name == "announcement":
-                    self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_ANNOUNCEMENT)
-                elif template_name == "patchnote":
-                    self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_PATCHNOTE)
-                    self.embed_data["notificacao"] = self.template_content["content"]
-
-                self.update_buttons()
-            except FileNotFoundError:
-                self.template_content = None
-                raise Exception("❌ Template não encontrado.")
-
+        # -------- Botões Originais --------
         @discord.ui.button(label="Definir Template *", style=discord.ButtonStyle.primary, row=0)
         async def define_template(self, interaction: discord.Interaction, button: Button):
-            class TemplateModal(Modal,
-                                title="Alterar Template" if self.embed_data.get("template") else "Definir Template"):
-                def __init__(self, embed_view):
+            class TemplateModal(Modal, title="Alterar Template" if self.embed_data.get("template") else "Definir Template"):
+                def __init__(self, embed_view: EmbedView):
                     super().__init__()
                     self.embed_view = embed_view
 
@@ -235,14 +212,12 @@ async def embed(interaction: discord.Interaction):
                     }
                     choice = self.template_input.value.strip()
                     template = template_map.get(choice)
-
                     if not template:
                         await modal_interaction.response.send_message(
-                            "❌ Escolha inválida. Digite 1 (evento), 2 (anúncio), 3 (campeonato) ou 4 (patchnote).",
-                            ephemeral=True,
+                            "❌ Escolha inválida. Digite 1, 2, 3 ou 4.",
+                            ephemeral=True
                         )
                         return
-
                     try:
                         await self.embed_view.load_template(template)
                         self.embed_view.update_buttons()
@@ -250,16 +225,16 @@ async def embed(interaction: discord.Interaction):
                     except Exception as e:
                         if not modal_interaction.response.is_done():
                             await modal_interaction.response.send_message(
-                                f"❌ Erro ao carregar o template: {str(e)}", ephemeral=True
+                                f"❌ Erro ao carregar o template: {e}",
+                                ephemeral=True
                             )
 
             await interaction.response.send_modal(TemplateModal(self))
 
         @discord.ui.button(label="Definir Mensagem de Notificação *", style=discord.ButtonStyle.primary, row=0)
         async def define_notificacao(self, interaction: discord.Interaction, button: Button):
-            class NotificacaoModal(Modal, title="Editar Mensagem de Notificação" if self.embed_data.get(
-                "notificacao") else "Definir Mensagem de Notificação"):
-                def __init__(self, embed_view):
+            class NotificacaoModal(Modal, title="Editar Mensagem de Notificação" if self.embed_data.get("notificacao") else "Definir Mensagem de Notificação"):
+                def __init__(self, embed_view: EmbedView):
                     super().__init__()
                     self.embed_view = embed_view
 
@@ -276,20 +251,18 @@ async def embed(interaction: discord.Interaction):
                         self.embed_view.embed_data["notificacao"] = content_template.replace(
                             "[Notificação]", self.notificacao_input.value
                         )
-
                     self.embed_view.update_buttons()
                     await self.embed_view.update_preview(modal_interaction)
 
             modal = NotificacaoModal(self)
-            if self.embed_data["notificacao"]:
+            if self.embed_data.get("notificacao"):
                 modal.notificacao_input.default = self.embed_data["notificacao"]
-
             await interaction.response.send_modal(modal)
 
         @discord.ui.button(label="Definir Título *", style=discord.ButtonStyle.primary, row=1)
         async def define_titulo(self, interaction: discord.Interaction, button: Button):
             class TituloModal(Modal, title="Editar Título" if self.embed_data.get("titulo") else "Definir Título"):
-                def __init__(self, embed_view):
+                def __init__(self, embed_view: EmbedView):
                     super().__init__()
                     self.embed_view = embed_view
 
@@ -308,14 +281,12 @@ async def embed(interaction: discord.Interaction):
             modal = TituloModal(self)
             if self.embed_data.get("titulo"):
                 modal.titulo_input.default = self.embed_data["titulo"]
-
             await interaction.response.send_modal(modal)
 
         @discord.ui.button(label="Definir Descrição *", style=discord.ButtonStyle.primary, row=1)
         async def define_descricao(self, interaction: discord.Interaction, button: Button):
-            class DescricaoModal(Modal,
-                                 title="Editar Descrição" if self.embed_data.get("descricao") else "Definir Descrição"):
-                def __init__(self, embed_view):
+            class DescricaoModal(Modal, title="Editar Descrição" if self.embed_data.get("descricao") else "Definir Descrição"):
+                def __init__(self, embed_view: EmbedView):
                     super().__init__()
                     self.embed_view = embed_view
 
@@ -335,13 +306,12 @@ async def embed(interaction: discord.Interaction):
             modal = DescricaoModal(self)
             if self.embed_data.get("descricao"):
                 modal.descricao_input.default = self.embed_data["descricao"]
-
             await interaction.response.send_modal(modal)
 
         @discord.ui.button(label="Adicionar Imagem", style=discord.ButtonStyle.primary, row=2)
         async def adiciona_imagem(self, interaction: discord.Interaction, button: Button):
             class ImagemModal(Modal, title="Editar Imagem" if self.embed_data.get("imagem") else "Adicionar Imagem"):
-                def __init__(self, embed_view):
+                def __init__(self, embed_view: EmbedView):
                     super().__init__()
                     self.embed_view = embed_view
 
@@ -359,27 +329,63 @@ async def embed(interaction: discord.Interaction):
             modal = ImagemModal(self)
             if self.embed_data.get("imagem"):
                 modal.imagem_input.default = self.embed_data["imagem"]
-
             await interaction.response.send_modal(modal)
+
+        # -------- Botão NOVO: Salvar JSON --------
+        @discord.ui.button(label="Salvar JSON", style=discord.ButtonStyle.secondary, row=2)
+        async def salvar_json(self, interaction: discord.Interaction, button: Button):
+            # Gera o dict do embed atual (preview)
+            if self.template_content:
+                base = self.template_content["embeds"][0].copy()
+                # substitui placeholders
+                base["description"] = base.get("description", "") \
+                    .replace("[Título]", self.embed_data["titulo"] or "") \
+                    .replace("[Descrição]", self.embed_data["descricao"] or "")
+                if self.embed_data["imagem"]:
+                    base["image"] = {"url": self.embed_data["imagem"]}
+                embed_dict = base
+            else:
+                temp = discord.Embed(
+                    title=self.embed_data["titulo"] or "",
+                    description=self.embed_data["descricao"] or "",
+                    color=discord.Color.from_rgb(255, 242, 0)
+                )
+                if self.embed_data["imagem"]:
+                    temp.set_image(url=self.embed_data["imagem"])
+                embed_dict = temp.to_dict()
+
+            json_str = json.dumps(embed_dict, ensure_ascii=False, indent=4)
+            arquivo = discord.File(io.StringIO(json_str), filename="embed_preview.json")
+            canal_save = bot.get_channel(SAVE_CHANNEL_ID)
+
+            if self.json_message:
+                # Re-substitui o arquivo na mensagem anterior
+                await self.json_message.edit(content="Embed JSON atualizado:", attachments=[arquivo])
+            else:
+                # Envia pela primeira vez e adiciona botão de download
+                msg = await canal_save.send(content="Embed JSON salvo:", file=arquivo)
+                file_url = msg.attachments[0].url
+                view_dl = DownloadView(file_url)
+                await msg.edit(view=view_dl)
+                self.json_message = msg
+
+            await interaction.response.send_message("✅ JSON salvo no canal de destino.", ephemeral=True)
 
         @discord.ui.button(label="Enviar", style=discord.ButtonStyle.success, row=3)
         async def enviar(self, interaction: discord.Interaction, button: Button):
             if not self.embed_data["titulo"] or not self.embed_data["descricao"] or not self.embed_data["canal_envio"]:
                 await interaction.response.send_message(
-                    "⚠️ Preencha o Título, Descrição e Canal antes de enviar!", ephemeral=True
+                    "⚠️ Preencha o Título, Descrição e Canal antes de enviar!",
+                    ephemeral=True
                 )
                 return
 
             combined_description = f"# {self.embed_data['titulo']}\n\n{self.embed_data['descricao']}"
+            final_embed = discord.Embed(description=combined_description, color=discord.Color.from_rgb(255, 242, 0))
 
-            final_embed = discord.Embed(
-                description=combined_description,
-                color=discord.Color.from_rgb(255, 242, 0),
-            )
-
+            # footer do template ou padrão
             if self.template_content and "footer" in self.template_content["embeds"][0]:
-                template_footer = self.template_content["embeds"][0]["footer"]
-                final_embed.set_footer(text=template_footer.get("text", ""))
+                final_embed.set_footer(text=self.template_content["embeds"][0]["footer"].get("text", ""))
             else:
                 final_embed.set_footer(text="Atenciosamente, a equipe Marvel Rivals Brazuka")
 
@@ -390,13 +396,20 @@ async def embed(interaction: discord.Interaction):
             canal = self.embed_data["canal_envio"]
 
             try:
-                await canal.send(content=content, embed=final_embed)
+                sent = await canal.send(content=content, embed=final_embed)
+                # Atualiza a mensagem do JSON para incluir o link do embed final
+                if self.json_message:
+                    await self.json_message.edit(
+                        content=f"JSON do embed: {sent.jump_url}",
+                        view=self.json_message.view
+                    )
                 await interaction.response.edit_message(
                     content="✅ Embed enviado com sucesso!", embed=None, view=None
                 )
             except Exception:
                 await interaction.response.send_message(
-                    "❌ Não foi possível enviar o embed. Verifique o ID do canal e permissões.", ephemeral=True
+                    "❌ Não foi possível enviar o embed. Verifique permissões.",
+                    ephemeral=True
                 )
             self.stop()
 
@@ -409,6 +422,63 @@ async def embed(interaction: discord.Interaction):
             )
             self.stop()
 
+        # -------- Funções auxiliares internas --------
+        async def update_preview(self, interaction: discord.Interaction):
+            if not self.template_content:
+                preview = discord.Embed(
+                    title=self.embed_data["titulo"] or "Título do Embed",
+                    description=self.embed_data["descricao"] or "Descrição do Embed",
+                    color=discord.Color.from_rgb(255, 242, 0),
+                )
+                if self.embed_data["imagem"]:
+                    preview.set_image(url=self.embed_data["imagem"])
+            else:
+                tpl = self.template_content["embeds"][0]
+                preview = discord.Embed.from_dict(tpl)
+                preview.description = tpl["description"] \
+                    .replace("[Título]", self.embed_data["titulo"] or "[Título]") \
+                    .replace("[Descrição]", self.embed_data["descricao"] or "[Descrição]")
+                if self.embed_data["imagem"]:
+                    preview.set_image(url=self.embed_data["imagem"])
+                if "footer" in tpl and tpl["footer"].get("text"):
+                    preview.set_footer(text=tpl["footer"]["text"])
+                else:
+                    preview.set_footer(text="Atenciosamente, a equipe Marvel Rivals Brazuka")
+
+            info = (
+                f"**Canal de envio:** "
+                f"{self.embed_data['canal_envio'].mention if self.embed_data['canal_envio'] else 'Nenhum'}\n"
+                f"**Mensagem de notificação:** {self.embed_data['notificacao'] or 'Nenhuma'}"
+            )
+            await interaction.response.edit_message(content=f"Monte seu embed:\n\n{info}", embed=preview, view=self)
+
+        async def load_template(self, template_name: str):
+            try:
+                with open(f"{TEMPLATES_DIR}{template_name}_template.json", "r", encoding="utf-8") as f:
+                    self.template_content = json.load(f)
+                self.embed_data.update({
+                    "template": template_name,
+                    "titulo": None,
+                    "descricao": None,
+                    "notificacao": None,
+                    "imagem": None,
+                })
+                # escolhe canal padrão
+                if template_name == "event":
+                    self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_EVENT)
+                elif template_name == "championship":
+                    self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_CHAMPIONSHIP)
+                elif template_name == "announcement":
+                    self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_ANNOUNCEMENT)
+                elif template_name == "patchnote":
+                    self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_PATCHNOTE)
+                    self.embed_data["notificacao"] = self.template_content["content"]
+                self.update_buttons()
+            except FileNotFoundError:
+                self.template_content = None
+                raise Exception("❌ Template não encontrado.")
+
+    # envia a view inicial
     await interaction.response.send_message(
         content="Monte seu embed com as características abaixo:",
         embed=discord.Embed(
@@ -421,9 +491,7 @@ async def embed(interaction: discord.Interaction):
     )
 
 
-#######################
-# Eventos
-#######################
+# ======== Eventos ========
 @bot.event
 async def on_ready():
     print(f"Bot conectado com sucesso como: {bot.user}")
@@ -434,13 +502,10 @@ async def on_ready():
 async def on_member_update(before, after):
     if before.guild.id != GUILD_ID:
         return
-
     await update_member_roles(after, before_roles=before.roles, after_roles=after.roles)
 
 
-#######################
-# Funções Utilitárias
-#######################
+# ======== Utilitários ========
 async def send_embed(channel, title, description, thumbnail=None, color=0xFFF200):
     if isinstance(channel, discord.TextChannel):
         embed = discord.Embed(title=title, description=description, color=color)
@@ -451,12 +516,9 @@ async def send_embed(channel, title, description, thumbnail=None, color=0xFFF200
 
 async def send_role_change_embed(member, role_changed, is_addition, trigger_to_action):
     channel = bot.get_channel(CHANNEL_LOG_APP)
-
     if role_changed is None:
         action = "adicionado ao(à)" if is_addition else "removido do(a)"
-        description = (
-            f"O cargo <@&{CARGO_BEYONDERS}> foi {action} usuário(a) {member.mention}."
-        )
+        desc = f"O cargo <@&{CARGO_BEYONDERS}> foi {action} usuário(a) {member.mention}."
     else:
         action = "adicionado ao(à)" if is_addition else "removido do(a)"
         reason = (
@@ -464,12 +526,12 @@ async def send_role_change_embed(member, role_changed, is_addition, trigger_to_a
             if is_addition
             else f"após receber o cargo <@&{role_changed.id}>"
         )
-        description = f"Cargo <@&{CARGO_BEYONDERS}> {action} usuário(a) {member.mention} {reason}"
+        desc = f"Cargo <@&{CARGO_BEYONDERS}> {action} usuário(a) {member.mention} {reason}"
 
     await send_embed(
         channel=channel,
         title=f"**Cargo alterado para {member.display_name}**",
-        description=description,
+        description=desc,
         thumbnail=member.avatar.url,
     )
 
@@ -479,27 +541,24 @@ async def sync_commands():
         guild = discord.Object(id=GUILD_ID)
         bot.tree.copy_global_to(guild=guild)
         all_commands = await bot.tree.sync(guild=guild)
-
-        current_commands = [f"`/{cmd.name}`" for cmd in all_commands]
-        log_message = "Comandos sincronizados com sucesso!\n"
-        log_message += f"Comandos ativos: {', '.join(current_commands)}" if current_commands else "Nenhum comando ativo no momento."
-
-        await send_embed(bot.get_channel(CHANNEL_LOG_APP),
-                         title="**Comandos Sincronizados**",
-                         description=log_message)
-
+        names = [f"`/{cmd.name}`" for cmd in all_commands]
+        msg = (
+            "Comandos sincronizados com sucesso!\n"
+            + (f"Comandos ativos: {', '.join(names)}" if names else "Nenhum comando ativo no momento.")
+        )
+        await send_embed(bot.get_channel(CHANNEL_LOG_APP), title="**Comandos Sincronizados**", description=msg)
     except Exception as e:
         await send_embed(
             bot.get_channel(CHANNEL_LOG_APP),
             title="**Erro na Sincronização**",
-            description=f"Ocorreu um erro ao sincronizar os comandos: {str(e)}",
-            color=0xFF0000)
+            description=f"Ocorreu um erro ao sincronizar os comandos: {e}",
+            color=0xFF0000
+        )
 
 
 async def update_member_roles(member, before_roles=None, after_roles=None):
     monitored_roles = {CARGO_SUBS_TWITCH, CARGO_MEMBROS_YOUTUBE, CARGO_BOT, CARGO_STAFF}
     role_beyonders = member.guild.get_role(CARGO_BEYONDERS)
-
     if not role_beyonders:
         return
 
@@ -507,25 +566,20 @@ async def update_member_roles(member, before_roles=None, after_roles=None):
         before_roles = member.roles
         after_roles = member.roles
 
-    added_roles = [role for role in after_roles if role not in before_roles]
-    removed_roles = [role for role in before_roles if role not in after_roles]
+    added_roles   = [r for r in after_roles if r not in before_roles]
+    removed_roles = [r for r in before_roles if r not in after_roles]
 
     try:
-        if any(role.id in monitored_roles for role in after_roles):
+        if any(r.id in monitored_roles for r in after_roles):
             if role_beyonders in after_roles:
-                role_added = next((role for role in added_roles if role.id in monitored_roles), None)
+                role_added = next((r for r in added_roles if r.id in monitored_roles), None)
                 await member.remove_roles(role_beyonders)
                 await send_role_change_embed(member, role_added, is_addition=False, trigger_to_action="adicionado")
         else:
             if role_beyonders not in after_roles:
-                role_removed = next((role for role in removed_roles if role.id in monitored_roles), None)
+                role_removed = next((r for r in removed_roles if r.id in monitored_roles), None)
                 await member.add_roles(role_beyonders)
-                await send_role_change_embed(
-                    member,
-                    role_removed,
-                    is_addition=True,
-                    trigger_to_action="removido"
-                )
+                await send_role_change_embed(member, role_removed, is_addition=True, trigger_to_action="removido")
     except Exception as e:
         print(f"Erro ao atualizar o cargo de {member.display_name}: {e}")
 
@@ -535,7 +589,5 @@ def load_template(template_name: str):
         return json.load(file)
 
 
-#######################
-# Inicialização do Bot
-#######################
+# ======== Inicialização ========
 bot.run(TOKEN)
