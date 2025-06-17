@@ -205,8 +205,8 @@ async def embed(interaction: discord.Interaction):
                     self.embed_view = ev
 
                 template_input = TextInput(
-                    label="Escolha o Template\n1 (evento), 2 (anúncio), 3 (campeonato), 4 (rumor), 5 (teorias) ou 6 (patchnote)",
-                    placeholder="Digite apenas o número do template",
+                    label="Escolha o Template (apenas número)",
+                    placeholder="1-evento, 2-anúncio, 3-campeonato, 4-rumor, 5-teorias ou 6-patchnote",
                     required=True,
                 )
                 async def on_submit(self, mi):
