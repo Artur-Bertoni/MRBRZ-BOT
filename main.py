@@ -213,7 +213,11 @@ async def embed(interaction: discord.Interaction):
                     m = {"1":"event","2":"announcement","3":"championship","4":"rumor","5":"theories","6":"patchnote"}
                     tpl = m.get(self.template_input.value.strip())
                     if not tpl:
-                        await mi.response.send_message("❌ Escolha inválida.", ephemeral=True)
+                        if not mi.response.is_done():
+                            await mi.response.send_message("❌ Escolha inválida.", ephemeral=True)
+                        else:
+                            await mi.response.send("❌ Escolha inválida.", ephemeral=True)
+
                         return
                     try:
                         await self.embed_view.load_template(tpl)
