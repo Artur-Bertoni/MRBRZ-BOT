@@ -1,0 +1,25 @@
+{
+  "content": "<@&1384508138606166058> [Notificação]",
+  "tts": false,
+  "embeds": [
+    {
+      "id": 501564444,
+      "description": "# [Título]\n\n[Descrição]\n",
+      "color": 16773632,
+      "footer": {
+        "text": "Atenciosamente, seus teóricos da conspiração favoritos"
+      },
+      "fields": [
+        {
+          "id": 120613196,
+          "name": " ",
+          "value": " "
+        }
+      ]
+    }
+  ],
+  "components": [],
+  "actions": {},
+  "username": "Marvel Rivals Brazuka",
+  "avatar_url": "https://media.discordapp.net/attachments/1337263839896666152/1337263915670835221/Cortes_MRB.png?ex=67a6cf92&is=67a57e12&hm=ec6980221abea3a69c0107f4e00ff0a23ab9c477e3d111f370a2a058dedb46d2&=&format=webp&quality=lossless"
+}

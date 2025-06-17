@@ -42,6 +42,7 @@ CHANNEL_ANNOUNCEMENT    = 1336666125257146440
 CHANNEL_CHAMPIONSHIP    = 1342271005778776064
 CHANNEL_PATCHNOTE       = 1351534926339506236
 CHANNEL_RUMOR           = 1384200360054358056
+CHANNEL_THEORIES        = 1384504252029993072
 
 # canal onde o JSON será salvo/atualizado
 SAVE_CHANNEL_ID         = 1370414840476078092
@@ -204,12 +205,12 @@ async def embed(interaction: discord.Interaction):
                     self.embed_view = ev
 
                 template_input = TextInput(
-                    label="Escolha o Template",
-                    placeholder="1 (evento), 2 (anúncio), 3 (campeonato), 4 (rumor) ou 5 (patchnote)",
+                    label="Escolha o Template\n1 (evento), 2 (anúncio), 3 (campeonato), 4 (rumor), 5 (teorias) ou 6 (patchnote)",
+                    placeholder="Digite apenas o número do template",
                     required=True,
                 )
                 async def on_submit(self, mi):
-                    m = {"1":"event","2":"announcement","3":"championship","4":"rumor","5":"patchnote"}
+                    m = {"1":"event","2":"announcement","3":"championship","4":"rumor","5":"theories","6":"patchnote"}
                     tpl = m.get(self.template_input.value.strip())
                     if not tpl:
                         await mi.response.send_message("❌ Escolha inválida.", ephemeral=True)
@@ -492,6 +493,8 @@ async def embed(interaction: discord.Interaction):
                     self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_ANNOUNCEMENT)
                 elif template_name == "rumor":
                     self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_RUMOR)
+                elif template_name == "theories":
+                    self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_THEORIES)
                 elif template_name == "patchnote":
                     self.embed_data["canal_envio"] = bot.get_channel(CHANNEL_PATCHNOTE)
                     self.embed_data["notificacao"] = self.template_content["content"]
