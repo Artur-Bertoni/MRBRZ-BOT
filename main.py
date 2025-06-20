@@ -31,7 +31,7 @@ CARGO_SUBS_TWITCH       = 1336425874177790012
 CARGO_MEMBROS_YOUTUBE   = 1336425799359791174
 CARGO_BOT               = 1338657713797857331
 CARGO_VINGADORES        = 1336381521111814158
-CARGO_COMMUNITY_MANAGER = 1384201190270832830
+CARGO_EQUIPE            = 1385626621469262026
 CARGO_BEYONDERS         = 1342108534350811206
 
 TEMPLATES_DIR           = "./embed_templates/"
@@ -569,7 +569,7 @@ async def sync_commands():
         await send_embed(bot.get_channel(CHANNEL_LOG_APP), "**Erro na Sincronização**", str(e), color=0xFF0000)
 
 async def update_member_roles(member, before_roles=None, after_roles=None):
-    mon = {CARGO_SUBS_TWITCH, CARGO_MEMBROS_YOUTUBE, CARGO_BOT, CARGO_VINGADORES, CARGO_COMMUNITY_MANAGER}
+    mon = {CARGO_SUBS_TWITCH, CARGO_MEMBROS_YOUTUBE, CARGO_BOT, CARGO_VINGADORES, CARGO_EQUIPE}
     bey = member.guild.get_role(CARGO_BEYONDERS)
     if not bey: return
 
