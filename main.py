@@ -27,6 +27,7 @@ if not TOKEN:
 
 GUILD_ID = 1336381520977596518
 
+ROLE_GUARDIOES       = 1336671601864871956
 ROLE_SUBS_TWITCH     = 1336425874177790012
 ROLE_MEMBROS_YOUTUBE = 1336425799359791174
 ROLE_BOT             = 1338657713797857331
@@ -54,8 +55,7 @@ CHANNEL_SAVE_EMBEDS  = 1370414840476078092
     guild=discord.Object(id=GUILD_ID)
 )
 async def ping(interaction: discord.Interaction):
-    member = interaction.user
-    if ROLE_EQUIPE not in [role.id for role in member.roles]:
+    if not any(r.id in (ROLE_GUARDIOES, ROLE_EQUIPE) for r in interaction.user.roles):
         await interaction.response.send_message(
             "🚫 Você não tem permissão para usar este comando.",
             ephemeral=True
@@ -119,8 +119,7 @@ async def atualizar_cargos(interaction: discord.Interaction):
     guild=discord.Object(id=GUILD_ID),
 )
 async def embed(interaction: discord.Interaction):
-    member = interaction.user
-    if ROLE_COMMUNITY not in [role.id for role in member.roles]:
+    if not any(r.id in (ROLE_GUARDIOES, ROLE_COMMUNITY) for r in interaction.user.roles):
         await interaction.response.send_message(
             "🚫 Você não tem permissão para usar este comando.",
             ephemeral=True
