@@ -27,25 +27,24 @@ if not TOKEN:
 
 GUILD_ID = 1336381520977596518
 
-CARGO_SUBS_TWITCH       = 1336425874177790012
-CARGO_MEMBROS_YOUTUBE   = 1336425799359791174
-CARGO_BOT               = 1338657713797857331
-CARGO_VINGADORES        = 1336381521111814158
-CARGO_EQUIPE            = 1385626621469262026
-CARGO_BEYONDERS         = 1342108534350811206
+ROLE_SUBS_TWITCH     = 1336425874177790012
+ROLE_MEMBROS_YOUTUBE = 1336425799359791174
+ROLE_BOT             = 1338657713797857331
+ROLE_VINGADORES      = 1336381521111814158
+ROLE_EQUIPE          = 1385626621469262026
+ROLE_COMMUNITY       = 1384201190270832830
+ROLE_BEYONDERS       = 1342108534350811206
 
-TEMPLATES_DIR           = "./embed_templates/"
+TEMPLATES_DIR        = "./embed_templates/"
 
-CHANNEL_LOG_APP         = 1341465591667753060
-CHANNEL_EVENT           = 1336666506146349078
-CHANNEL_ANNOUNCEMENT    = 1336666125257146440
-CHANNEL_CHAMPIONSHIP    = 1342271005778776064
-CHANNEL_PATCHNOTE       = 1351534926339506236
-CHANNEL_RUMOR           = 1384200360054358056
-CHANNEL_THEORIES        = 1384504252029993072
-
-# canal onde o JSON será salvo/atualizado
-SAVE_CHANNEL_ID         = 1370414840476078092
+CHANNEL_LOG_APP      = 1341465591667753060
+CHANNEL_EVENT        = 1336666506146349078
+CHANNEL_ANNOUNCEMENT = 1336666125257146440
+CHANNEL_CHAMPIONSHIP = 1342271005778776064
+CHANNEL_PATCHNOTE    = 1351534926339506236
+CHANNEL_RUMOR        = 1384200360054358056
+CHANNEL_THEORIES     = 1384504252029993072
+CHANNEL_SAVE_EMBEDS  = 1370414840476078092
 
 
 # ======== Comandos ========
@@ -55,9 +54,10 @@ SAVE_CHANNEL_ID         = 1370414840476078092
     guild=discord.Object(id=GUILD_ID)
 )
 async def ping(interaction: discord.Interaction):
-    if not interaction.user.guild_permissions.administrator:
+    member = interaction.user
+    if ROLE_EQUIPE not in [role.id for role in member.roles]:
         await interaction.response.send_message(
-            "Você não tem permissão para usar este comando.",
+            "🚫 Você não tem permissão para usar este comando.",
             ephemeral=True
         )
         return
@@ -87,7 +87,7 @@ async def ping(interaction: discord.Interaction):
 async def atualizar_cargos(interaction: discord.Interaction):
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
-            "Você não tem permissão para usar este comando.",
+            "🚫 Você não tem permissão para usar este comando.",
             ephemeral=True
         )
         return
@@ -119,6 +119,14 @@ async def atualizar_cargos(interaction: discord.Interaction):
     guild=discord.Object(id=GUILD_ID),
 )
 async def embed(interaction: discord.Interaction):
+    member = interaction.user
+    if ROLE_COMMUNITY not in [role.id for role in member.roles]:
+        await interaction.response.send_message(
+            "🚫 Você não tem permissão para usar este comando.",
+            ephemeral=True
+        )
+        return
+
     # View de botão único (antes de ter a versão final)
     class DownloadView(View):
         def __init__(self, url: str):
@@ -351,7 +359,7 @@ async def embed(interaction: discord.Interaction):
             filename = f"{title_safe}_preview.json"
             arquivo = discord.File(io.StringIO(json_str), filename=filename)
 
-            canal = bot.get_channel(SAVE_CHANNEL_ID)
+            canal = bot.get_channel(CHANNEL_SAVE_EMBEDS)
             if self.json_message:
                 await self.json_message.edit(content="Embed JSON atualizado:", attachments=[arquivo])
             else:
@@ -545,7 +553,7 @@ async def send_role_change_embed(member, role_changed, is_addition, trigger_to_a
     ch = bot.get_channel(CHANNEL_LOG_APP)
     if role_changed is None:
         action = "adicionado ao(à)" if is_addition else "removido do(a)"
-        desc = f"O cargo <@&{CARGO_BEYONDERS}> foi {action} usuário(a) {member.mention}."
+        desc = f"O cargo <@&{ROLE_BEYONDERS}> foi {action} usuário(a) {member.mention}."
     else:
         action = "adicionado ao(à)" if is_addition else "removido do(a)"
         reason = (
@@ -553,7 +561,7 @@ async def send_role_change_embed(member, role_changed, is_addition, trigger_to_a
             if is_addition else
             f"após receber o cargo <@&{role_changed.id}>"
         )
-        desc = f"Cargo <@&{CARGO_BEYONDERS}> {action} {member.mention} {reason}"
+        desc = f"Cargo <@&{ROLE_BEYONDERS}> {action} {member.mention} {reason}"
 
     await send_embed(ch, f"**Cargo alterado para {member.display_name}**", desc, thumbnail=member.avatar.url)
 
@@ -569,8 +577,8 @@ async def sync_commands():
         await send_embed(bot.get_channel(CHANNEL_LOG_APP), "**Erro na Sincronização**", str(e), color=0xFF0000)
 
 async def update_member_roles(member, before_roles=None, after_roles=None):
-    mon = {CARGO_SUBS_TWITCH, CARGO_MEMBROS_YOUTUBE, CARGO_BOT, CARGO_VINGADORES, CARGO_EQUIPE}
-    bey = member.guild.get_role(CARGO_BEYONDERS)
+    mon = {ROLE_SUBS_TWITCH, ROLE_MEMBROS_YOUTUBE, ROLE_BOT, ROLE_VINGADORES, ROLE_EQUIPE}
+    bey = member.guild.get_role(ROLE_BEYONDERS)
     if not bey: return
 
     br = before_roles or member.roles
