@@ -46,6 +46,7 @@ CHANNEL_PATCHNOTE    = 1351534926339506236
 CHANNEL_RUMOR        = 1384200360054358056
 CHANNEL_THEORIES     = 1384504252029993072
 CHANNEL_SAVE_EMBEDS  = 1370414840476078092
+CHANNEL_THANKS       = 1405149707885481994
 
 
 # ======== Comandos ========
@@ -541,12 +542,14 @@ async def on_member_update(before, after):
 
 
 # ======== Utilitários ========
-async def send_embed(channel, title, description, thumbnail=None, color=0xFFF200):
+async def send_embed(channel, title, description, thumbnail=None, color=0xFFF200, mention=None):
     if isinstance(channel, discord.TextChannel):
         em = discord.Embed(title=title, description=description, color=color)
         if thumbnail:
             em.set_thumbnail(url=thumbnail)
-        await channel.send(embed=em)
+        await channel.send(
+            content=  f"<@{mention}>" if mention else None,
+            embed=em)
 
 async def send_role_change_embed(member, role_changed, is_addition, trigger_to_action):
     ch = bot.get_channel(CHANNEL_LOG_APP)
@@ -563,6 +566,19 @@ async def send_role_change_embed(member, role_changed, is_addition, trigger_to_a
         desc = f"Cargo <@&{ROLE_BEYONDERS}> {action} {member.mention} {reason}"
 
     await send_embed(ch, f"**Cargo alterado para {member.display_name}**", desc, thumbnail=member.avatar.url)
+
+async def send_thanks_embed(member, role_changed, is_addition):
+    ch = bot.get_channel(CHANNEL_THANKS)
+
+    action = "adicionado ao(à) usuário(a)" if is_addition else "removido do(a) usuário(a)"
+    msg = (
+        "Fique mais do que a vontade para usufruir das suas regalias no servidor! \nObrigado pelo seu apoio! 🥳"
+        if is_addition else
+        "Ficamos tristes em vê-lo(a) partir, mas agradecemos pelo seu apoio até aqui, caso queira voltar, estaremos de braços abertos sempre! 🥰"
+    )
+    desc = f"Cargo <@&{role_changed.id}> {action} {member.mention}.\n{msg}"
+
+    await send_embed(ch, f"**Cargo alterado para {member.display_name}**", desc, thumbnail=member.avatar.url, mention=f"{member.mention}")
 
 async def sync_commands():
     try:
@@ -591,11 +607,13 @@ async def update_member_roles(member, before_roles=None, after_roles=None):
                 ra = next((r for r in added if r.id in mon), None)
                 await member.remove_roles(bey)
                 await send_role_change_embed(member, ra, False, "adicionado")
+                await send_thanks_embed(member, ra, False)
         else:
             if bey not in ar:
                 rr = next((r for r in removed if r.id in mon), None)
                 await member.add_roles(bey)
                 await send_role_change_embed(member, rr, True, "removido")
+                await send_thanks_embed(member, rr, True)
     except Exception as e:
         print(f"Erro roles {member.display_name}: {e}")
 
