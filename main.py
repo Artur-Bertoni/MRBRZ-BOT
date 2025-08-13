@@ -549,7 +549,7 @@ async def send_embed(channel, title, description, thumbnail=None, color=0xFFF200
         if thumbnail:
             em.set_thumbnail(url=thumbnail)
         await channel.send(
-            content=  f"<@{mention}>" if mention else None,
+            content= mention,
             embed=em)
 
 async def send_role_change_embed(member, role_changed, is_addition, trigger_to_action):
