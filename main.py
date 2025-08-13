@@ -593,7 +593,7 @@ async def sync_commands():
         await send_embed(bot.get_channel(CHANNEL_LOG_APP), "**Erro na Sincronização**", str(e), color=0xFF0000)
 
 async def update_member_roles(member, before_roles=None, after_roles=None):
-    mon = {ROLE_SUBS_TWITCH, ROLE_MEMBROS_YOUTUBE, ROLE_BOT, ROLE_VINGADORES, ROLE_EQUIPE}
+    mon = {ROLE_SUBS_TWITCH, ROLE_MEMBROS_YOUTUBE, ROLE_BOT, ROLE_VINGADORES, ROLE_EQUIPE, ROLE_TEST}
     tksRoles = {ROLE_SUBS_TWITCH, ROLE_MEMBROS_YOUTUBE, ROLE_TEST}
     bey = member.guild.get_role(ROLE_BEYONDERS)
     if not bey: return
