@@ -609,18 +609,14 @@ async def update_member_roles(member, before_roles=None, after_roles=None):
             if bey in ar:
                 await member.remove_roles(bey)
                 await send_role_change_embed(member, ra, False, "adicionado")
-            print(f"Teste1 - {ra}")
-            if ra in tksRoles:
-                print("Teste1")
+            if ra.id in tksRoles:
                 await send_thanks_embed(member, ra, True)
         else:
             rr = next((r for r in removed if r.id in mon), None)
             if bey not in ar:
                 await member.add_roles(bey)
                 await send_role_change_embed(member, rr, True, "removido")
-            print(f"Teste1 - {rr}")
-            if rr in tksRoles:
-                print("Teste2")
+            if rr.id in tksRoles:
                 await send_thanks_embed(member, rr, False)
     except Exception as e:
         print(f"Erro roles {member.display_name}: {e}")
