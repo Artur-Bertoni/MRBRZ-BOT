@@ -605,21 +605,25 @@ async def update_member_roles(member, before_roles=None, after_roles=None):
 
     try:
         if any(r.id in mon for r in ar):
+            ra = next((r for r in added if r.id in mon), None)
             if bey in ar:
-                ra = next((r for r in added if r.id in mon), None)
                 await member.remove_roles(bey)
                 await send_role_change_embed(member, ra, False, "adicionado")
-                if ra in tksRoles:
-                    await send_thanks_embed(member, ra, True)
+            if ra in tksRoles:
+                print("Teste1")
+                await send_thanks_embed(member, ra, True)
         else:
+            rr = next((r for r in removed if r.id in mon), None)
             if bey not in ar:
-                rr = next((r for r in removed if r.id in mon), None)
                 await member.add_roles(bey)
                 await send_role_change_embed(member, rr, True, "removido")
-                if rr in tksRoles:
-                    await send_thanks_embed(member, rr, False)
+            if rr in tksRoles:
+                print("Teste2")
+                await send_thanks_embed(member, rr, False)
     except Exception as e:
         print(f"Erro roles {member.display_name}: {e}")
+
+
 
 def load_template(name: str):
     with open(os.path.join(TEMPLATES_DIR, f"{name}_template.json"), "r", encoding="utf-8") as f:
