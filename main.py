@@ -35,6 +35,7 @@ ROLE_VINGADORES      = 1336381521111814158
 ROLE_EQUIPE          = 1385626621469262026
 ROLE_COMMUNITY       = 1384201190270832830
 ROLE_BEYONDERS       = 1342108534350811206
+ROLE_TEST            = 1343947583260983338
 
 TEMPLATES_DIR        = "./embed_templates/"
 
@@ -593,6 +594,7 @@ async def sync_commands():
 
 async def update_member_roles(member, before_roles=None, after_roles=None):
     mon = {ROLE_SUBS_TWITCH, ROLE_MEMBROS_YOUTUBE, ROLE_BOT, ROLE_VINGADORES, ROLE_EQUIPE}
+    tksRoles = {ROLE_SUBS_TWITCH, ROLE_MEMBROS_YOUTUBE, ROLE_TEST}
     bey = member.guild.get_role(ROLE_BEYONDERS)
     if not bey: return
 
@@ -607,13 +609,15 @@ async def update_member_roles(member, before_roles=None, after_roles=None):
                 ra = next((r for r in added if r.id in mon), None)
                 await member.remove_roles(bey)
                 await send_role_change_embed(member, ra, False, "adicionado")
-                await send_thanks_embed(member, ra, False)
+                if ra in tksRoles:
+                    await send_thanks_embed(member, ra, True)
         else:
             if bey not in ar:
                 rr = next((r for r in removed if r.id in mon), None)
                 await member.add_roles(bey)
                 await send_role_change_embed(member, rr, True, "removido")
-                await send_thanks_embed(member, rr, True)
+                if rr in tksRoles:
+                    await send_thanks_embed(member, rr, False)
     except Exception as e:
         print(f"Erro roles {member.display_name}: {e}")
 
